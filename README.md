@@ -3,7 +3,7 @@
 Emeris is a small experimental game engine.
 It explores simulation-first architecture, searching for the smallest collection of ideas that can produce rich, living worlds.
 
-TypeScript, browser canvas, version **`0.0.1`**. Simulation stays sovereign; appearance is interpretation.
+TypeScript, browser canvas, version **`0.0.1`**.
 
 ## Core ideas
 

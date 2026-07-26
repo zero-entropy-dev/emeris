@@ -1,0 +1,119 @@
+/**
+ * Dev-only lifeline (browser host). The server lives exactly as long as a page
+ * watches it: the page pings while open and beacons on unload, so closing the
+ * window shuts Vite down and frees the port.
+ *
+ * Disposable by design — this file plus scripts/run.mjs and .vscode/launch.json
+ * are the entire browser-host launch layer. Delete them if the host changes.
+ * Never imported by src/. Never applies to builds.
+ */
+import { cwd } from "node:process";
+
+/** Explicit close beacon: only long enough for a reload to re-announce. */
+const BYE_GRACE_MS = 900;
+/** Silent client (crash, sleep, killed browser): needs a longer benefit of doubt. */
+const SILENT_GRACE_MS = 2500;
+const CLIENT_TIMEOUT_MS = 2500;
+const STARTUP_GRACE_MS = 30000;
+const SWEEP_MS = 150;
+
+const CLIENT = `(() => {
+  const id = Math.random().toString(36).slice(2);
+  const hit = (p) => {
+    const u = '/__lifeline/' + p + '?id=' + id;
+    if (p === 'bye' && navigator.sendBeacon) navigator.sendBeacon(u);
+    else fetch(u, { cache: 'no-store' }).catch(() => {});
+  };
+  hit('ping');
+  const t = setInterval(() => hit('ping'), 1000);
+  addEventListener('pagehide', () => { clearInterval(t); hit('bye'); });
+})();`;
+
+export function lifeline() {
+  /** client id -> last seen epoch ms */
+  const clients = new Map();
+  const startedAt = Date.now();
+  let sawClient = false;
+  let emptySince = 0;
+  let saidBye = false;
+  let server;
+  let timer;
+
+  function shutdown(reason) {
+    clearInterval(timer);
+    console.log(`\nlifeline: ${reason} — closing dev server.`);
+    const done = () => process.exit(0);
+    try {
+      const closing = server?.close?.();
+      if (closing?.then) {
+        closing.then(done, done);
+        setTimeout(done, 1500);
+      } else done();
+    } catch {
+      done();
+    }
+  }
+
+  function sweep() {
+    const now = Date.now();
+    for (const [id, seen] of clients) {
+      if (now - seen > CLIENT_TIMEOUT_MS) clients.delete(id);
+    }
+
+    if (clients.size > 0) {
+      emptySince = 0;
+      saidBye = false;
+      return;
+    }
+
+    if (!sawClient) {
+      if (now - startedAt > STARTUP_GRACE_MS) shutdown("no page ever connected");
+      return;
+    }
+
+    if (!emptySince) {
+      emptySince = now;
+      return;
+    }
+
+    const grace = saidBye ? BYE_GRACE_MS : SILENT_GRACE_MS;
+    if (now - emptySince > grace) shutdown("window closed");
+  }
+
+  return {
+    name: "meadow-lifeline",
+    apply: "serve",
+
+    configureServer(s) {
+      server = s;
+      s.middlewares.use("/__lifeline", (req, res) => {
+        const [path, query = ""] = (req.url ?? "/").split("?");
+        const id = new URLSearchParams(query).get("id") ?? "anon";
+
+        if (path === "/id") {
+          res.setHeader("content-type", "application/json");
+          res.end(JSON.stringify({ meadow: true, root: cwd() }));
+          return;
+        }
+
+        if (path === "/bye") {
+          clients.delete(id);
+          if (clients.size === 0) saidBye = true;
+        } else {
+          clients.set(id, Date.now());
+          sawClient = true;
+        }
+
+        res.statusCode = 204;
+        res.setHeader("cache-control", "no-store");
+        res.end();
+      });
+
+      timer = setInterval(sweep, SWEEP_MS);
+    },
+
+    transformIndexHtml() {
+      return [{ tag: "script", children: CLIENT, injectTo: "body" }];
+    },
+  };
+}

@@ -1,0 +1,18 @@
+{
+  "name": "catalyst",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Catalyst — a constitutional TypeScript/canvas engine hunting the irreducible vocabulary of identity-and-style games (World, Entity, Identity, Style, Mark)",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/run.mjs",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "smoke": "tsx scripts/sim-smoke.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}

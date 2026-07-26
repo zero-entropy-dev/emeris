@@ -1,6 +1,6 @@
 # Emeris — high-level roadmap
 
-**Status:** Unparked — working irreducible vocabulary named (World / Entity / Identity / Style / Mark), 2026-07-25.
+**Status:** Unparked — working core named (World / Entity / Identity / Style / Mark), 2026-07-25.
 
 Companion: [`engine-notes.md`](engine-notes.md) (long-term questions and first principles). Runtime law: [`AGENTS.md`](AGENTS.md).
 
@@ -12,7 +12,7 @@ Companion: [`engine-notes.md`](engine-notes.md) (long-term questions and first p
 
 Do not build another general-purpose engine.
 
-Discover the **irreducible vocabulary** of an engine for identity-and-style games — simulation as truth, appearance as interpretation, style as programmable identity — and only keep names that earn their place in contact with real play. Smallness follows; it is not the prize. Expand vocabulary only when a new name makes the set clearer, not larger.
+Emeris is a small experimental game engine. It explores simulation-first architecture, searching for the smallest collection of ideas that can produce rich, living worlds. Simulation as truth, appearance as interpretation, style as programmable identity — keep only names that earn their place in contact with real play. Expand the core only when a new name makes the set clearer, not larger.
 
 ---
 
@@ -28,7 +28,7 @@ Discover the **irreducible vocabulary** of an engine for identity-and-style game
 
 ## Suggested sequence
 
-### Phase 1 — Name the irreducible vocabulary
+### Phase 1 — Name the smallest useful core
 
 Answer in writing before growing frameworks:
 
@@ -38,7 +38,7 @@ Answer in writing before growing frameworks:
 4. What is "appearance" as one abstraction (procedural, sprite, vector, text, particles)?
 5. What is the thinnest host (window, input, time, audio stub)?
 
-Exit criterion: a short vocabulary you would still believe after a week away — names that feel unavoidable, not a feature inventory. *(Working set of five claimed in AGENTS.)*
+Exit criterion: a short set of ideas you would still believe after a week away — not a feature inventory. *(Working set of five claimed in AGENTS.)*
 
 ### Phase 2 — Vertical slice (one tiny game)
 

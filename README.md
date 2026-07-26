@@ -1,10 +1,11 @@
 # Emeris
 
-A small constitutional game engine — TypeScript, browser canvas, version **`0.0.1`**.
+Emeris is a small experimental game engine.
+It explores simulation-first architecture, searching for the smallest collection of ideas that can produce rich, living worlds.
 
-Emeris hunts the **irreducible vocabulary of an engine**: the few names without which the thing stops being itself. Not another Godot or Unity. Not an “AI game engine.” Simulation stays sovereign; appearance is interpretation.
+TypeScript, browser canvas, version **`0.0.1`**. Simulation stays sovereign; appearance is interpretation.
 
-## Core vocabulary
+## Core ideas
 
 | Concept | Role |
 |---------|------|

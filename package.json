@@ -2,7 +2,7 @@
   "name": "emeris",
   "private": true,
   "version": "0.0.1",
-  "description": "Emeris — a constitutional TypeScript/canvas engine hunting the irreducible vocabulary of identity-and-style games (World, Entity, Identity, Style, Mark)",
+  "description": "Emeris is a small experimental game engine. It explores simulation-first architecture, searching for the smallest collection of ideas that can produce rich, living worlds.",
   "type": "module",
   "scripts": {
     "dev": "node scripts/run.mjs",

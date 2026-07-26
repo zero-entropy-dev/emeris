@@ -6,7 +6,7 @@ This note is for re-entry. Law lives in [`AGENTS.md`](AGENTS.md). First principl
 
 ## What we were doing
 
-Unpark a sealed notes folder and take early TypeScript steps that make the locked insights *true in code* — not a Godot clone, not a Waymark port. The deeper aim: discover the **irreducible vocabulary** of an engine, not merely the smallest one.
+Unpark a sealed notes folder and take early TypeScript steps that make the locked insights *true in code* — not a Godot clone, not a Waymark port. Emeris is a small experimental game engine: simulation-first, searching for the smallest collection of ideas that can produce rich, living worlds.
 
 ## What landed
 
@@ -14,7 +14,7 @@ Unpark a sealed notes folder and take early TypeScript steps that make the locke
 2. **Spine** — seeded RNG in world state, fixed timestep, JSON snapshot (P/R), identity registry with `behave`.
 3. **Appearance** — Style maps Identity → Mark; glyphs as a second backend; HMR on style; Style.`frame` owns backdrop + entity pass + chrome.
 4. **Slice** — steer a walker to a beacon; win is `world.phase`; Tab cycles control; critters flee; flowers bloom once.
-5. **Constitution** — working vocabulary named (World, Entity, Identity, Style, Mark); grow by refining irreducibility; lean LCD; hand-built host only (no Electron/Tauri).
+5. **Constitution** — working core named (World, Entity, Identity, Style, Mark); grow by refining that set; lean living law; hand-built host only (no Electron/Tauri).
 6. **Perimeter** — Waymark stays in Godot; no transfer/harvest into this tree.
 7. **Sim/host split** — `src/sim/` is sovereign (no DOM/canvas); host submits intent to `step` and observes via Style/Mark. Headless: `npm run smoke`.
 8. **Entity.local** — identity-specific state (alarm, bloomed, vx/vy) lives in one optional plain object on Entity; still five names, plain JSON.
@@ -44,7 +44,7 @@ Candidate beats (choose by itch, not backlog order):
 2. **Second command source** — same Intent edge as keys (e.g. replayed or scripted steer); proves Intent is the boundary, not a special walker.
 3. **Richer `Entity.local`** on an existing identity — deeper memory/motion without new World bags.
 
-Constraints: prefer Intent / `Entity.local` over new World keys; resist new vocabulary; launcher/UI waits; no Waymark transfer; no ECS pivot.
+Constraints: prefer Intent / `Entity.local` over new World keys; resist new core names; launcher/UI waits; no Waymark transfer; no ECS pivot.
 
 ## What not to do next by default
 

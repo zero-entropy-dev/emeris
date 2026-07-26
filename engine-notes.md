@@ -201,9 +201,9 @@ Do not ask:
 
 Ask:
 
-> "What names are unavoidable — the irreducible vocabulary of an engine that allows games like Waymark to exist?"
+> "What is the smallest collection of ideas that can produce rich, living worlds — for games like Waymark to exist?"
 
-Smallness may follow. It is not the question. Everything else should emerge from that.
+Everything else should emerge from that.
 
 ---
 
@@ -213,7 +213,7 @@ Smallness may follow. It is not the question. Everything else should emerge from
 
 2. **Appearance is one idea; style is data.** Procedural, sprite, vector, text, particles are backends of the same “how this looks” call, not separate universes. A style table (palette, rules, motifs) reinterprets the whole world without rewriting entity data. The first prototype earns its keep with identities + style + immediate draw — not with a scene graph or asset pipeline.
 
-3. **Irreducible vocabulary, not smallest engine.** Pressure-test World, Entity, Identity, Style, and Mark. A new name earns entry only by making that set clearer (fewer special cases), not more complete. Smallness is a symptom of irreducibility.
+3. **Smallest useful core.** Pressure-test World, Entity, Identity, Style, and Mark. A new name earns entry only by making that set clearer (fewer special cases), not more complete.
 
 4. **Simulation sovereignty.** The world is source of truth; renderers and other consumers are observers. Input becomes intent applied at `step`. The simulation must never know observers exist.
 
@@ -234,9 +234,9 @@ A memo framed an “AI-native simulation framework”: modular core (runtime, EC
 
 **Rejected for this tree**
 
-- ECS / components / system schedulers as the core vocabulary — contradicts grow-from-demand and the five names under play (World, Entity, Identity, Style, Mark; `Entity.local`; Identity.`behave`)
+- ECS / components / system schedulers as the core — contradicts grow-from-demand and the five names under play (World, Entity, Identity, Style, Mark; `Entity.local`; Identity.`behave`)
 - Event bus, persistence module, rendering-hook layer, and inspectors as *first-class core* — serialize canary + Style/Mark observers already exist; tooling waits on demand
-- Framing the engine as “systems create worlds” completeness — here the frame is irreducible vocabulary under a real slice; don’t pre-build a Spore chassis
+- Framing the engine as “systems create worlds” completeness — here the frame is a small core under a real slice; don’t pre-build a Spore chassis
 
 AI may later *consume* identity descriptions and world snapshots. It stays outside `src/sim/` and never becomes a hard dependency of the runtime.
 

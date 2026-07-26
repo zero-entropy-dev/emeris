@@ -1,4 +1,4 @@
-# Catalyst — high-level roadmap
+# Emeris — high-level roadmap
 
 **Status:** Unparked — working irreducible vocabulary named (World / Entity / Identity / Style / Mark), 2026-07-25.
 

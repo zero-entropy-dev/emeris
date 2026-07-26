@@ -1,4 +1,4 @@
-# Catalyst — founding / re-entry context
+# Emeris — founding / re-entry context
 
 **Status:** Unparked `0.0.1` — constitutional core + beacon/critter/flower slice; one-button launch; Entity.local for identity-specific state.
 
@@ -33,6 +33,18 @@ Or in Cursor: Run and Debug → **Run meadow**. Either way the browser opens **h
 ## Controls (quick)
 
 WASD move · Tab swap walker · Space style · P/R snapshot · N new meadow
+
+## Next session (when steered)
+
+Identity is **Emeris** (`0.0.1`). Bidirectional flower lifecycle held. Pick **one** coherent play beat that pressures World / Entity / Identity / Style / Mark — not a micro-probe and not a framework expansion.
+
+Candidate beats (choose by itch, not backlog order):
+
+1. **Post-win / second phase** — something after the beacon that Style and `behave` both read from world state (still no sixth name).
+2. **Second command source** — same Intent edge as keys (e.g. replayed or scripted steer); proves Intent is the boundary, not a special walker.
+3. **Richer `Entity.local`** on an existing identity — deeper memory/motion without new World bags.
+
+Constraints: prefer Intent / `Entity.local` over new World keys; resist new vocabulary; launcher/UI waits; no Waymark transfer; no ECS pivot.
 
 ## What not to do next by default
 

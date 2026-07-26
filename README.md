@@ -1,8 +1,8 @@
-# Catalyst
+# Emeris
 
 A small constitutional game engine — TypeScript, browser canvas, version **`0.0.1`**.
 
-Catalyst hunts the **irreducible vocabulary of an engine**: the few names without which the thing stops being itself. Not another Godot or Unity. Not an “AI game engine.” Simulation stays sovereign; appearance is interpretation.
+Emeris hunts the **irreducible vocabulary of an engine**: the few names without which the thing stops being itself. Not another Godot or Unity. Not an “AI game engine.” Simulation stays sovereign; appearance is interpretation.
 
 ## Core vocabulary
 

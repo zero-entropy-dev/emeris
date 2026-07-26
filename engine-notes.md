@@ -1,4 +1,4 @@
-# Catalyst — notes (long-term)
+# Emeris — notes (long-term)
 
 **Status:** Unparked for baby steps (TypeScript stub). Still not a full project plan — questions and first principles. Runtime law lives in [`AGENTS.md`](AGENTS.md); sequence in [`roadmap.md`](roadmap.md).
 

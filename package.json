@@ -1,8 +1,8 @@
 {
-  "name": "catalyst",
+  "name": "emeris",
   "private": true,
   "version": "0.0.1",
-  "description": "Catalyst — a constitutional TypeScript/canvas engine hunting the irreducible vocabulary of identity-and-style games (World, Entity, Identity, Style, Mark)",
+  "description": "Emeris — a constitutional TypeScript/canvas engine hunting the irreducible vocabulary of identity-and-style games (World, Entity, Identity, Style, Mark)",
   "type": "module",
   "scripts": {
     "dev": "node scripts/run.mjs",

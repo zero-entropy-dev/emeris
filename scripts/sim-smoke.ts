@@ -1,37 +1,33 @@
 /**
- * Headless canary: simulation advances with no canvas, DOM, or style.
+ * Headless canary: world advances with no canvas, DOM, or style.
  * Run: npm run smoke
  */
 import {
-  FLOWER_REGROW_SECONDS,
+  DAY_SECONDS,
   createWorld,
+  dayOf,
   deserialize,
-  gardenComplete,
+  growthFactor,
+  isFoodSource,
   localOf,
+  nearestFood,
   serialize,
   step,
-  type Intent,
 } from "../src/sim/index.ts";
 
 const STEP = 1 / 60;
+const EMPTY = { steerX: 0, steerY: 0 };
+
 const world = createWorld(800, 600, 42);
 
-const intents: Intent[] = [
-  { steerX: 1, steerY: 0 },
-  { steerX: 1, steerY: -0.5 },
-  { steerX: 0, steerY: -1 },
-  { steerX: 0, steerY: 0, cycleControl: true },
-  { steerX: -1, steerY: 0 },
-];
-
 for (let i = 0; i < 120; i++) {
-  step(world, STEP, intents[i % intents.length]!);
+  step(world, STEP, EMPTY);
 }
 
 const snap = serialize(world);
 const again = createWorld(800, 600, 42);
 for (let i = 0; i < 120; i++) {
-  step(again, STEP, intents[i % intents.length]!);
+  step(again, STEP, EMPTY);
 }
 
 if (serialize(again) !== snap) {
@@ -39,342 +35,184 @@ if (serialize(again) !== snap) {
   process.exit(1);
 }
 
-const critters = world.entities.filter((e) => e.identity === "critter");
-if (critters.length < 1) {
-  console.error("sim-smoke FAIL: expected critters in the meadow");
-  process.exit(1);
-}
-
-// Flee: park a walker next to a critter; distance should grow.
-const fleeWorld = createWorld(800, 600, 7);
-const critter = fleeWorld.entities.find((e) => e.identity === "critter");
-const walker = fleeWorld.entities.find((e) => e.id === fleeWorld.controlledId);
-if (!critter || !walker) {
-  console.error("sim-smoke FAIL: missing critter or controlled walker");
-  process.exit(1);
-}
-critter.x = 400;
-critter.y = 300;
-localOf(critter).alarm = 0;
-walker.x = 430;
-walker.y = 300;
-const d0 = Math.hypot(critter.x - walker.x, critter.y - walker.y);
-for (let i = 0; i < 45; i++) {
-  step(fleeWorld, STEP, { steerX: 0, steerY: 0 });
-}
-const d1 = Math.hypot(critter.x - walker.x, critter.y - walker.y);
-if (!(d1 > d0 + 8)) {
-  console.error(
-    `sim-smoke FAIL: critter did not flee (d0=${d0.toFixed(1)} d1=${d1.toFixed(1)})`,
-  );
-  process.exit(1);
-}
-
-// Startle memory: after walker teleports away, critter keeps moving while alarm > 0.
-const memoryWorld = createWorld(800, 600, 11);
-const mCritter = memoryWorld.entities.find((e) => e.identity === "critter");
-const mWalker = memoryWorld.entities.find(
-  (e) => e.id === memoryWorld.controlledId,
-);
-if (!mCritter || !mWalker) {
-  console.error("sim-smoke FAIL: missing entities for alarm probe");
-  process.exit(1);
-}
-mCritter.x = 400;
-mCritter.y = 300;
-mCritter.facing = 0;
-localOf(mCritter).alarm = 0;
-mWalker.x = 420;
-mWalker.y = 300;
-step(memoryWorld, STEP, { steerX: 0, steerY: 0 });
-if (!((mCritter.local?.alarm ?? 0) > 0)) {
-  console.error("sim-smoke FAIL: startle did not set alarm");
-  process.exit(1);
-}
-mWalker.x = 50;
-mWalker.y = 50;
-const xBefore = mCritter.x;
-const yBefore = mCritter.y;
-const alarmBefore = mCritter.local?.alarm ?? 0;
-for (let i = 0; i < 20; i++) {
-  step(memoryWorld, STEP, { steerX: 0, steerY: 0 });
-}
-const moved = Math.hypot(mCritter.x - xBefore, mCritter.y - yBefore);
-if (!(moved > 2)) {
-  console.error(
-    "sim-smoke FAIL: skittish critter did not keep moving after threat left",
-  );
-  process.exit(1);
-}
-if (!((mCritter.local?.alarm ?? 0) < alarmBefore)) {
-  console.error("sim-smoke FAIL: alarm did not decay");
-  process.exit(1);
-}
-
-// Snapshot round trip preserves critter pose + local.alarm (plain JSON).
-const roundTrip = deserialize(serialize(memoryWorld));
-const rtCritter = roundTrip.entities.find((e) => e.id === mCritter.id);
-if (!rtCritter || rtCritter.identity !== "critter") {
-  console.error("sim-smoke FAIL: critter missing after deserialize");
-  process.exit(1);
-}
-if (
-  rtCritter.x !== mCritter.x ||
-  rtCritter.y !== mCritter.y ||
-  rtCritter.local?.alarm !== mCritter.local?.alarm
-) {
-  console.error("sim-smoke FAIL: critter state lost in snapshot round trip");
-  process.exit(1);
-}
-
-// Flower: permanent bloom latch + snapshot round trip.
-const bloomWorld = createWorld(800, 600, 19);
-const flower = bloomWorld.entities.find((e) => e.identity === "flower");
-const fWalker = bloomWorld.entities.find(
-  (e) => e.id === bloomWorld.controlledId,
-);
-if (!flower || !fWalker) {
-  console.error("sim-smoke FAIL: missing flower or walker");
-  process.exit(1);
-}
-if (flower.local?.bloomed) {
-  console.error("sim-smoke FAIL: flower should start unbloomed");
-  process.exit(1);
-}
-flower.x = 400;
-flower.y = 300;
-fWalker.x = 410;
-fWalker.y = 300;
-step(bloomWorld, STEP, { steerX: 0, steerY: 0 });
-if (!flower.local?.bloomed) {
-  console.error("sim-smoke FAIL: flower did not bloom on visit");
-  process.exit(1);
-}
-fWalker.x = 50;
-fWalker.y = 50;
-for (let i = 0; i < 30; i++) {
-  step(bloomWorld, STEP, { steerX: 0, steerY: 0 });
-}
-if (!flower.local?.bloomed) {
-  console.error("sim-smoke FAIL: bloom latch did not persist after walker left");
-  process.exit(1);
-}
-const bloomTrip = deserialize(serialize(bloomWorld));
-const rtFlower = bloomTrip.entities.find((e) => e.id === flower.id);
-if (!rtFlower || rtFlower.local?.bloomed !== true) {
-  console.error("sim-smoke FAIL: bloomed state lost in snapshot round trip");
-  process.exit(1);
-}
-
-// World control probe: second command source claims a walker via Intent only.
-const controlWorld = createWorld(800, 600, 23);
-const walkers = controlWorld.entities.filter((e) => e.identity === "walker");
-if (walkers.length < 2) {
-  console.error("sim-smoke FAIL: need at least two walkers for control probe");
-  process.exit(1);
-}
-const a = walkers[0]!;
-const b = walkers[1]!;
-controlWorld.controlledId = a.id;
-a.x = 200;
-a.y = 300;
-b.x = 400;
-b.y = 300;
-const aX0 = a.x;
-// Source A steers the current controlled walker right.
-for (let i = 0; i < 30; i++) {
-  step(controlWorld, STEP, { steerX: 1, steerY: 0 });
-}
-if (!(a.x > aX0 + 5)) {
-  console.error("sim-smoke FAIL: source A did not move controlled walker A");
-  process.exit(1);
-}
-const aX1 = a.x;
-const bX1 = b.x;
-// Source B claims walker B and steers left — no new World fields.
-for (let i = 0; i < 30; i++) {
-  step(controlWorld, STEP, {
-    steerX: -1,
-    steerY: 0,
-    claimControl: b.id,
-  });
-}
-if (controlWorld.controlledId !== b.id) {
-  console.error("sim-smoke FAIL: claimControl did not set controlledId");
-  process.exit(1);
-}
-if (!(b.x < bX1 - 5)) {
-  console.error("sim-smoke FAIL: source B did not move claimed walker B");
-  process.exit(1);
-}
-// A may wander slightly but must not keep receiving source B's leftward steer.
-if (a.x < aX1 - 40) {
-  console.error("sim-smoke FAIL: walker A still looked claimed after B took control");
-  process.exit(1);
-}
-const controlTrip = deserialize(serialize(controlWorld));
-if (controlTrip.controlledId !== b.id) {
-  console.error("sim-smoke FAIL: controlledId lost in snapshot round trip");
-  process.exit(1);
-}
-
-// Movement feel: accelerate under steer, coast after release (Entity.local vx/vy).
-const feelWorld = createWorld(800, 600, 29);
-const feel = feelWorld.entities.find((e) => e.id === feelWorld.controlledId);
-if (!feel) {
-  console.error("sim-smoke FAIL: missing controlled walker for feel probe");
-  process.exit(1);
-}
-feel.x = 200;
-feel.y = 300;
-localOf(feel).vx = 0;
-localOf(feel).vy = 0;
-for (let i = 0; i < 45; i++) {
-  step(feelWorld, STEP, { steerX: 1, steerY: 0 });
-}
-if (!(feel.x > 200 + 20)) {
-  console.error("sim-smoke FAIL: walker did not accelerate under steer");
-  process.exit(1);
-}
-if (!((feel.local?.vx ?? 0) > 10)) {
-  console.error("sim-smoke FAIL: expected nonzero vx while steering");
-  process.exit(1);
-}
-const coastX0 = feel.x;
-const coastVx0 = feel.local?.vx ?? 0;
-step(feelWorld, STEP, { steerX: 0, steerY: 0 });
-step(feelWorld, STEP, { steerX: 0, steerY: 0 });
-if (!(feel.x > coastX0)) {
-  console.error("sim-smoke FAIL: walker did not coast after releasing steer");
-  process.exit(1);
-}
-if (!((feel.local?.vx ?? 0) < coastVx0)) {
-  console.error("sim-smoke FAIL: friction did not reduce vx while coasting");
-  process.exit(1);
-}
-
-// Garden gate: beacon win blocked until bloom goal met.
-const gateWorld = createWorld(800, 600, 31);
-const gPlayer = gateWorld.entities.find((e) => e.id === gateWorld.controlledId);
-const gBeacon = gateWorld.entities.find((e) => e.identity === "beacon");
-const gFlowers = gateWorld.entities.filter((e) => e.identity === "flower");
-if (!gPlayer || !gBeacon || gFlowers.length < 1) {
-  console.error("sim-smoke FAIL: missing pieces for garden gate");
-  process.exit(1);
-}
-gPlayer.x = gBeacon.x;
-gPlayer.y = gBeacon.y;
-step(gateWorld, STEP, { steerX: 0, steerY: 0 });
-if (gateWorld.phase === "won") {
-  console.error("sim-smoke FAIL: won before garden complete");
-  process.exit(1);
-}
-if (gardenComplete(gateWorld)) {
-  console.error("sim-smoke FAIL: garden should start incomplete");
-  process.exit(1);
-}
-for (const f of gFlowers) {
-  localOf(f).bloomed = true;
-  gateWorld.flowerBloomed += 1;
-}
-if (!gardenComplete(gateWorld)) {
-  console.error("sim-smoke FAIL: gardenComplete false after blooming all");
-  process.exit(1);
-}
-step(gateWorld, STEP, { steerX: 0, steerY: 0 });
-if (gateWorld.phase !== "won") {
-  console.error("sim-smoke FAIL: should win when garden full and on beacon");
-  process.exit(1);
-}
-
-// Lifecycle: gather despawns a bloomed flower; counters + snapshot survive.
-const lifeWorld = createWorld(800, 600, 37);
-const lifeFlower = lifeWorld.entities.find((e) => e.identity === "flower");
-const lifePlayer = lifeWorld.entities.find(
-  (e) => e.id === lifeWorld.controlledId,
-);
-if (!lifeFlower || !lifePlayer) {
-  console.error("sim-smoke FAIL: missing flower/player for lifecycle");
-  process.exit(1);
-}
-const beforeCount = lifeWorld.entities.length;
-lifeFlower.x = 300;
-lifeFlower.y = 300;
-lifePlayer.x = 300;
-lifePlayer.y = 300;
-step(lifeWorld, STEP, { steerX: 0, steerY: 0 }); // bloom
-if (!lifeFlower.local?.bloomed || lifeWorld.flowerBloomed < 1) {
-  console.error("sim-smoke FAIL: flower did not bloom for gather probe");
-  process.exit(1);
-}
-step(lifeWorld, STEP, { steerX: 0, steerY: 0 }); // gather / despawn + queue
-if (lifeWorld.entities.some((e) => e.id === lifeFlower.id)) {
-  console.error("sim-smoke FAIL: gathered flower still in entities");
-  process.exit(1);
-}
-if (lifeWorld.entities.length !== beforeCount - 1) {
-  console.error("sim-smoke FAIL: entity count did not drop after gather");
-  process.exit(1);
-}
-if (lifeWorld.flowerGathered < 1) {
-  console.error("sim-smoke FAIL: flowerGathered not incremented");
-  process.exit(1);
-}
-if ((lifeWorld.flowerRegrows?.length ?? 0) !== 1) {
-  console.error("sim-smoke FAIL: gather should queue one flowerRegrow");
-  process.exit(1);
-}
-const queued = lifeWorld.flowerRegrows[0]!;
-const midTrip = deserialize(serialize(lifeWorld));
-if (
-  midTrip.flowerRegrows?.length !== 1 ||
-  midTrip.flowerRegrows[0]!.readyAt !== queued.readyAt
-) {
-  console.error("sim-smoke FAIL: flowerRegrows lost in snapshot");
-  process.exit(1);
-}
-// Spawn under play: advance past readyAt → bud returns via addEntity.
-const spawnId = lifeWorld.nextId;
-step(lifeWorld, FLOWER_REGROW_SECONDS, { steerX: 0, steerY: 0 });
-if ((lifeWorld.flowerRegrows?.length ?? 0) !== 0) {
-  console.error("sim-smoke FAIL: due regrow was not flushed");
-  process.exit(1);
-}
-if (lifeWorld.entities.length !== beforeCount) {
-  console.error("sim-smoke FAIL: entity count did not recover after regrow");
-  process.exit(1);
-}
-const regrown = lifeWorld.entities.find((e) => e.id === spawnId);
-if (!regrown || regrown.identity !== "flower" || regrown.local?.bloomed) {
-  console.error("sim-smoke FAIL: expected unbloomed flower from addEntity");
-  process.exit(1);
-}
-// Garden can complete even after flowers are gone, via bloom counters.
-lifeWorld.flowerBloomed = lifeWorld.flowerGoal;
-if (!gardenComplete(lifeWorld)) {
-  console.error("sim-smoke FAIL: gardenComplete should use bloom counters");
-  process.exit(1);
-}
-const lifeTrip = deserialize(serialize(lifeWorld));
-if (
-  lifeTrip.entities.length !== lifeWorld.entities.length ||
-  lifeTrip.flowerGathered !== lifeWorld.flowerGathered ||
-  lifeTrip.flowerBloomed !== lifeWorld.flowerBloomed ||
-  (lifeTrip.flowerRegrows?.length ?? 0) !==
-    (lifeWorld.flowerRegrows?.length ?? 0)
-) {
-  console.error("sim-smoke FAIL: lifecycle state lost in snapshot");
-  process.exit(1);
-}
-
-// deserialize must preserve world extent (viewport is host-only).
-const extentTrip = deserialize(serialize(createWorld(2200, 1500, 2)));
-if (extentTrip.width !== 2200 || extentTrip.height !== 1500) {
-  console.error("sim-smoke FAIL: meadow extent lost on deserialize");
-  process.exit(1);
-}
-
+const creatures = world.entities.filter((e) => e.identity === "creature");
+const grasses = world.entities.filter((e) => e.identity === "grass");
 const flowers = world.entities.filter((e) => e.identity === "flower");
+if (creatures.length < 1) {
+  console.error("sim-smoke FAIL: expected creatures in the meadow");
+  process.exit(1);
+}
+if (grasses.length < 40) {
+  console.error("sim-smoke FAIL: expected denser grass field");
+  process.exit(1);
+}
+if (flowers.length < 1) {
+  console.error("sim-smoke FAIL: expected seeded flowers");
+  process.exit(1);
+}
+if (!dayOf(world)) {
+  console.error("sim-smoke FAIL: missing day entity");
+  process.exit(1);
+}
+
+// Day cycle advances.
+const dayWorld = createWorld(800, 600, 3);
+const day0 = dayOf(dayWorld)!.local!.cycle!;
+step(dayWorld, DAY_SECONDS * 0.25, EMPTY);
+const day1 = dayOf(dayWorld)!.local!.cycle!;
+const dayDelta = (day1 - day0 + 1) % 1;
+if (!(dayDelta > 0.2 && dayDelta < 0.3)) {
+  console.error(
+    `sim-smoke FAIL: day cycle did not advance (~0.25), got Δ=${dayDelta.toFixed(3)}`,
+  );
+  process.exit(1);
+}
+
+// Growth factor: day clearly faster than night.
+const gfDay = createWorld(400, 300, 5);
+localOf(dayOf(gfDay)!).cycle = 0.45;
+const mid = growthFactor(gfDay);
+localOf(dayOf(gfDay)!).cycle = 0.95;
+const night = growthFactor(gfDay);
+if (!(mid > night * 3)) {
+  console.error(
+    `sim-smoke FAIL: day growthFactor should dominate night (mid=${mid.toFixed(2)} night=${night.toFixed(2)})`,
+  );
+  process.exit(1);
+}
+
+// Grass regenerates under conditions.
+const growWorld = createWorld(400, 300, 9);
+const patch = growWorld.entities.find((e) => e.identity === "grass")!;
+localOf(patch).amount = 0.1;
+localOf(dayOf(growWorld)!).cycle = 0.45;
+const a0 = patch.local!.amount!;
+for (let i = 0; i < 180; i++) {
+  step(growWorld, STEP, EMPTY);
+}
+if (!((patch.local?.amount ?? 0) > a0 + 0.05)) {
+  console.error("sim-smoke FAIL: grass did not regenerate");
+  process.exit(1);
+}
+
+// Grass spread into a sparse neighbor.
+const spreadWorld = createWorld(400, 300, 8);
+const rich = spreadWorld.entities.find((e) => e.identity === "grass")!;
+localOf(rich).amount = 1;
+const sparse = spreadWorld.entities.find(
+  (e) => e.identity === "grass" && e.id !== rich.id,
+)!;
+sparse.x = rich.x + 20;
+sparse.y = rich.y;
+localOf(sparse).amount = 0.1;
+localOf(dayOf(spreadWorld)!).cycle = 0.45;
+const s0 = sparse.local!.amount!;
+for (let i = 0; i < 240; i++) {
+  step(spreadWorld, STEP, EMPTY);
+}
+if (!((sparse.local?.amount ?? 0) > s0 + 0.04)) {
+  console.error("sim-smoke FAIL: grass did not spread to neighbor");
+  process.exit(1);
+}
+
+// Flower: grow → bloom → wilt die.
+const flowerWorld = createWorld(400, 300, 19);
+const fl = flowerWorld.entities.find((e) => e.identity === "flower")!;
+const flId = fl.id;
+localOf(fl).amount = 0.8;
+localOf(fl).bloomed = false;
+localOf(fl).age = 0;
+localOf(dayOf(flowerWorld)!).cycle = 0.45;
+for (let i = 0; i < 120; i++) {
+  step(flowerWorld, STEP, EMPTY);
+}
+const midFl = flowerWorld.entities.find((e) => e.id === flId);
+if (!midFl?.local?.bloomed) {
+  console.error("sim-smoke FAIL: flower should bloom when amount high");
+  process.exit(1);
+}
+for (let i = 0; i < 60 * 16; i++) {
+  step(flowerWorld, STEP, EMPTY);
+}
+if (flowerWorld.entities.some((e) => e.id === flId)) {
+  console.error("sim-smoke FAIL: bloomed flower should wilt and die off");
+  process.exit(1);
+}
+
+// Food helper: grass is edible; flowers are not.
+const eatWorld = createWorld(400, 300, 11);
+const eater = eatWorld.entities.find((e) => e.identity === "creature")!;
+const meal = eatWorld.entities.find((e) => e.identity === "grass")!;
+const bloom = eatWorld.entities.find((e) => e.identity === "flower");
+meal.x = 200;
+meal.y = 200;
+localOf(meal).amount = 1;
+eater.x = 200;
+eater.y = 200;
+localOf(eater).fullness = 0.2;
+if (bloom && isFoodSource(bloom)) {
+  console.error("sim-smoke FAIL: flowers must not be food sources");
+  process.exit(1);
+}
+if (!isFoodSource(meal) || nearestFood(eatWorld, 200, 200)?.id !== meal.id) {
+  console.error("sim-smoke FAIL: food source helpers miss grass");
+  process.exit(1);
+}
+const fullness0 = eater.local!.fullness!;
+const amount0 = meal.local!.amount!;
+step(eatWorld, STEP, EMPTY);
+if (
+  !((eater.local?.fullness ?? 0) > fullness0) ||
+  !((meal.local?.amount ?? 1) < amount0)
+) {
+  console.error("sim-smoke FAIL: creature did not eat nearby food");
+  process.exit(1);
+}
+
+// Death when fullness depleted.
+const deathWorld = createWorld(400, 300, 13);
+const doomed = deathWorld.entities.find((e) => e.identity === "creature")!;
+const doomedId = doomed.id;
+localOf(doomed).fullness = 0.001;
+step(deathWorld, 0.5, EMPTY);
+if (deathWorld.entities.some((e) => e.id === doomedId)) {
+  console.error("sim-smoke FAIL: creature should die at zero fullness");
+  process.exit(1);
+}
+
+// Birth when fullness high and cooldown clear.
+const birthWorld = createWorld(400, 300, 17);
+const parent = birthWorld.entities.find((e) => e.identity === "creature")!;
+const before = birthWorld.entities.filter((e) => e.identity === "creature")
+  .length;
+localOf(parent).fullness = 0.95;
+localOf(parent).age = 20;
+localOf(parent).cooldown = 0;
+step(birthWorld, STEP, EMPTY);
+const after = birthWorld.entities.filter((e) => e.identity === "creature")
+  .length;
+if (!(after > before)) {
+  console.error("sim-smoke FAIL: creature should reproduce when able");
+  process.exit(1);
+}
+
+const trip = deserialize(serialize(birthWorld));
+const tripParent = trip.entities.find((e) => e.id === parent.id);
+if (
+  !tripParent ||
+  tripParent.local?.fullness !== parent.local?.fullness ||
+  (dayOf(trip)?.local?.cycle ?? -1) !== (dayOf(birthWorld)?.local?.cycle ?? -2)
+) {
+  console.error("sim-smoke FAIL: ecology state lost in snapshot");
+  process.exit(1);
+}
+
+const extentTrip = deserialize(serialize(createWorld(960, 600, 2)));
+if (extentTrip.width !== 960 || extentTrip.height !== 600) {
+  console.error("sim-smoke FAIL: world extent lost on deserialize");
+  process.exit(1);
+}
+
 console.log(
-  `sim-smoke OK — tick=${world.tick} phase=${world.phase} entities=${world.entities.length} critters=${critters.length} flowers=${flowers.length} fleeΔ=${(d1 - d0).toFixed(1)} claim→${b.id} coast gate life spawn (no renderer)`,
+  `sim-smoke OK — meadow tick=${world.tick} creatures=${creatures.length} grass=${grasses.length} flowers=${flowers.length} day=${(dayOf(world)?.local?.cycle ?? 0).toFixed(2)} (empty intent, no renderer)`,
 );

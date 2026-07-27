@@ -42,13 +42,13 @@ That subtle shift changed the design process.
 
 ---
 
-## Simulation as reality
+## World as reality
 
-One recurring idea is that perhaps only the simulation should truly exist.
+One recurring idea is that perhaps only the world should truly exist.
 
 Everything visual could be an interpretation.
 
-Instead of treating graphics as persistent objects, rendering becomes something that is recreated continuously from the current simulation state.
+Instead of treating graphics as persistent objects, rendering becomes something that is recreated continuously from the current world state.
 
 Not because this is necessarily faster.
 
@@ -187,7 +187,7 @@ The engine should remain small enough that a single person can understand the wh
 - How should AI change engine architecture rather than simply generating code?
 - Can visual identity become programmable?
 - Can tooling become more important than editing?
-- Can the simulation become the sole source of truth?
+- Can the world become the sole source of truth?
 
 ---
 
@@ -209,13 +209,15 @@ Everything else should emerge from that.
 
 ## Locked insights (early prototype)
 
-1. **Simulation is the only citizen.** The world is plain state you could serialize and still rebuild the picture from. The frame answers one question — given current state (and style), what appears? — and is a consequence, not something that lives in the world.
+1. **World is the only citizen.** Plain state you could serialize and still rebuild the picture from. The frame answers one question — given current state (and style), what appears? — and is a consequence, not something that lives in the world.
 
 2. **Appearance is one idea; style is data.** Procedural, sprite, vector, text, particles are backends of the same “how this looks” call, not separate universes. A style table (palette, rules, motifs) reinterprets the whole world without rewriting entity data. The first prototype earns its keep with identities + style + immediate draw — not with a scene graph or asset pipeline.
 
-3. **Smallest useful core.** Pressure-test World, Entity, Identity, Style, and Mark. A new name earns entry only by making that set clearer (fewer special cases), not more complete.
+3. **Smallest useful core.** Pressure-test World, Entity, Identity, Style, and Mark. A new name earns entry only by making that set clearer (fewer special cases), not more complete. Inherited concepts are hypotheses.
 
-4. **Simulation sovereignty.** The world is source of truth; renderers and other consumers are observers. Input becomes intent applied at `step`. The simulation must never know observers exist.
+4. **World sovereignty.** The world is source of truth; renderers and other consumers are observers. Input becomes intent applied at `step`. The world must never know observers exist.
+
+5. **Observer-first (for now).** Prioritise the living world over player agency. Worlds should evolve without requiring a player. Agency is deferred, not rejected — a player should eventually enter a world that already exists. Conceptual clarity outranks code production.
 
 ---
 
@@ -223,7 +225,7 @@ Everything else should emerge from that.
 
 A memo framed an “AI-native simulation framework”: modular core (runtime, ECS/components, systems, events, persistence, rendering hooks, inspectors) plus optional AI tooling, flexible project memory, and Spore-scale systems-evolution as a possible test case — explicitly *not* locked as flagship.
 
-**Wanted identity (compatible):** a modular simulation engine with optional AI-native tooling — not “an AI game engine,” not “a Spore successor engine.”
+**Wanted identity (compatible):** a modular engine whose citizen is the world, with optional AI-native tooling — not “an AI game engine,” not “a Spore successor engine.”
 
 **Aligns with this experiment**
 
@@ -242,10 +244,24 @@ AI may later *consume* identity descriptions and world snapshots. It stays outsi
 
 ---
 
+## Parked directions (2026-07-27)
+
+**Described processes (shipped, idle in meadow):** Identity may carry an optional process — ordered named steps; `local.pc` + `local.vars` are plain data. Not a sixth core name. The living meadow uses `behave`; process stays available.
+
+**Tide pool chamber (closed experiment):** Second world used to pressure described processes and “no World furniture.” Retired from the runtime — dual-chamber maintenance encouraged syncing demos instead of sustaining one world. Learnings kept: process runner, entity-local bookkeeping, one-active-world law.
+
+**Ambient fields (next if needed):** If the meadow’s emergence feels thin under pairwise `nearest()` / food helpers, try continuous fields (presence, water, scent) as a candidate sixth name — only if they delete helpers and World furniture. Do not add them preemptively.
+
+**Caller-blind state transforms (meadow helpers, 2026-07-27):** `store` / `decay` / `emit` / `transform` are tiny composable ops on `Entity.local`. They must not know why they are called — Identity supplies meaning. That keeps interdependence cheap without a sixth core name or an event bus. Not ecology vocabulary.
+
+**Relations-as-primitive (notes only):** World as facts / rules. Striking and AI-legible, but a query engine + indexing + language — park until the meadow (and maybe fields) have been observed to fail.
+
+---
+
 ## Current conclusion
 
-A TypeScript core now exists — sim → identity registry → style marks → a deepened playable meadow slice. Waymark inspired the questions and stays in Godot; this folder does not receive a port or harvest. It stays small on purpose.
+A TypeScript core now exists — world package → identity registry → style marks → one living meadow. Waymark inspired the questions and stays in Godot; this folder does not receive a port or harvest. It stays small on purpose.
 
-If these ideas have merit, they should keep revealing themselves in contact with playable slices — not from anticipated platform requirements or product-sheet module lists.
+If these ideas have merit, they should keep revealing themselves through observation of this world — and later worlds that replace it — not from anticipated platform requirements or product-sheet module lists.
 
 The engine should remain the accumulated result of discovering that certain assumptions can be replaced by simpler, more coherent ones.

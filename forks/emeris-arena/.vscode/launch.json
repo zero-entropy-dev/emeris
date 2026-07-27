@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run arena",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/run.mjs",
+      "noDebug": true,
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_OPTIONS": null,
+        "VSCODE_INSPECTOR_OPTIONS": null
+      }
+    }
+  ]
+}

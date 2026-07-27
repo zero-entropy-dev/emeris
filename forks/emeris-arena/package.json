@@ -1,8 +1,8 @@
 {
-  "name": "emeris",
+  "name": "emeris-arena",
   "private": true,
-  "version": "0.0.3",
-  "description": "Emeris is a small experimental game engine. It explores world-first architecture, searching for the smallest collection of ideas that can produce rich, living worlds.",
+  "version": "0.0.4",
+  "description": "Emeris arena â€” simplest playable FPS (raycaster) on world-first Emeris law.",
   "type": "module",
   "scripts": {
     "dev": "node scripts/run.mjs",

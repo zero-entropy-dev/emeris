@@ -1,34 +1,28 @@
-/** Simulation state only. Nothing visual lives here. No platform APIs. */
+/** World state only. Nothing visual lives here. No platform APIs. */
 
-import { identities, nearest, type Identity } from "./identity";
+import type { Identity } from "./identity";
 import { random } from "./rng";
 
 export type { Identity };
 export { random };
 
-/** Fixed meadow extent — not the browser viewport. */
-export const MEADOW_WIDTH = 2200;
-export const MEADOW_HEIGHT = 1500;
-
-export type Phase = "playing" | "won";
+/** Default world size when host/tests omit extent (single-screen scale). */
+export const MEADOW_WIDTH = 960;
+export const MEADOW_HEIGHT = 600;
 
 /**
- * Probe hypothesis (World control):
- * `controlledId` / steer axes on World are honest applied slice state — not a
- * bag in disguise — as long as every command source (keys, test, future AI)
- * only submits Intent. If a second source needs new World keys, the pattern failed.
- *
- * Finding lives in HISTORY after the probe.
+ * Intent is a boundary for deferred agency: tests and a future player/agent
+ * submit it; only `step` applies it. The human host currently submits empty intent.
+ * Not a core vocabulary peer.
  */
-/** Host (or test, AI, replay) submits this; only `step` applies it. Not a core vocabulary peer. */
 export type Intent = {
   steerX: number;
   steerY: number;
-  /** Cycle to the next walker (human Tab). */
+  /** Cycle camera focus to the next creature (future / scripted). */
   cycleControl?: boolean;
   /**
-   * Claim a specific walker by entity id (second command source / scripted).
-   * Applied before steer; ignored if missing or not a living walker.
+   * Claim a specific creature by entity id as focus (second command source).
+   * Applied before steer axes; ignored if missing or not a living creature.
    */
   claimControl?: number;
 };
@@ -36,16 +30,25 @@ export type Intent = {
 /**
  * Identity-specific plain data on an entity.
  * Prefer adding keys here over new top-level Entity fields — keeps Entity
- * irreducible while still serializing with plain JSON.
+ * small while still serializing with plain JSON.
  */
 export type EntityLocal = {
-  /** Seconds of remaining skittishness after a startle (critters). */
-  alarm?: number;
-  /** Permanent visit latch (flowers). */
+  /** Day cycle 0..1 (day entity). */
+  cycle?: number;
+  /** Plant biomass / growth 0..1 (grass, flower). */
+  amount?: number;
+  /** Flower: open bloom latch. */
   bloomed?: boolean;
-  /** Velocity for controlled-walker acceleration feel. */
-  vx?: number;
-  vy?: number;
+  /** Creature how well-fed 0..1 (1 = full, 0 = starve). */
+  fullness?: number;
+  /** Age in seconds (creature life; flower time-since-bloom when bloomed). */
+  age?: number;
+  /** Creature reproduction cooldown remaining (seconds). */
+  cooldown?: number;
+  /** Described-process program counter (when Identity uses process). */
+  pc?: number;
+  /** Described-process numeric locals (when Identity uses process). */
+  vars?: Record<string, number>;
 };
 
 export type Entity = {
@@ -53,9 +56,9 @@ export type Entity = {
   identity: Identity;
   x: number;
   y: number;
-  /** Radians; walkers face / lean this way. */
+  /** Radians; mobile identities face / lean this way. */
   facing: number;
-  /** Walkers move; trees ignore. */
+  /** Motion speed; trees / grass ignore. */
   speed: number;
   /** Identity-specific state; omit when unused. Still Entity — not a sixth name. */
   local?: EntityLocal;
@@ -72,48 +75,18 @@ export type World = {
   /** Advances with every random() from the stream. */
   rngState: number;
   tick: number;
-  /** Sim extent in world units — independent of the observer viewport. */
+  /** World extent in world units — independent of the observer viewport. */
   width: number;
   height: number;
   time: number;
   entities: Entity[];
   nextId: number;
-  phase: Phase;
-  /** Walker currently receiving steer intent. */
-  controlledId: number;
+  /** Observer camera focus (creature id) — not player control. */
+  focusId: number;
   /** Last intent axes applied by step — serializable for snapshot/replay. */
   steerX: number;
   steerY: number;
-  /** Flowers spawned at create — garden goal (survives gather/despawn). */
-  flowerGoal: number;
-  /** How many flowers have bloomed at least once. */
-  flowerBloomed: number;
-  /** How many bloomed flowers were gathered (despawned). */
-  flowerGathered: number;
-  /**
-   * Spent patches waiting to become flowers again — applied slice state.
-   * Not an event bus; Style may read these as an observer.
-   */
-  flowerRegrows: FlowerRegrow[];
 };
-
-/** Seconds after gather before a bud returns at the patch. */
-export const FLOWER_REGROW_SECONDS = 5;
-
-/** Pending flower spawn after gather (plain JSON). */
-export type FlowerRegrow = {
-  x: number;
-  y: number;
-  readyAt: number;
-};
-
-const REACH = 28;
-const REGROW_JITTER = 18;
-
-/** True when the garden goal is met (bloom count — works after flowers are gathered). */
-export function gardenComplete(world: World): boolean {
-  return world.flowerGoal > 0 && world.flowerBloomed >= world.flowerGoal;
-}
 
 /** Remove an entity by id. Returns true if something was removed. */
 export function removeEntity(world: World, id: number): boolean {
@@ -130,27 +103,6 @@ export function addEntity(world: World, draft: Omit<Entity, "id">): Entity {
   return e;
 }
 
-function flushFlowerRegrows(world: World): void {
-  const queue = (world.flowerRegrows ??= []);
-  for (let i = queue.length - 1; i >= 0; i--) {
-    const p = queue[i]!;
-    if (p.readyAt > world.time) continue;
-    const jx = (random(world) - 0.5) * 2 * REGROW_JITTER;
-    const jy = (random(world) - 0.5) * 2 * REGROW_JITTER;
-    const x = Math.min(world.width - 80, Math.max(80, p.x + jx));
-    const y = Math.min(world.height - 80, Math.max(80, p.y + jy));
-    addEntity(world, {
-      identity: "flower",
-      x,
-      y,
-      facing: 0,
-      speed: 0,
-      local: { bloomed: false },
-    });
-    queue.splice(i, 1);
-  }
-}
-
 export function createWorld(
   width = MEADOW_WIDTH,
   height = MEADOW_HEIGHT,
@@ -165,17 +117,22 @@ export function createWorld(
     time: 0,
     entities: [],
     nextId: 1,
-    phase: "playing",
-    controlledId: 0,
+    focusId: 0,
     steerX: 0,
     steerY: 0,
-    flowerGoal: 0,
-    flowerBloomed: 0,
-    flowerGathered: 0,
-    flowerRegrows: [],
   };
 
-  for (let i = 0; i < 18; i++) {
+  world.entities.push({
+    id: world.nextId++,
+    identity: "day",
+    x: 0,
+    y: 0,
+    facing: 0,
+    speed: 0,
+    local: { cycle: 0.3 },
+  });
+
+  for (let i = 0; i < 14; i++) {
     world.entities.push({
       id: world.nextId++,
       identity: "tree",
@@ -186,137 +143,69 @@ export function createWorld(
     });
   }
 
-  // Beacon far from the spawn corner so the larger meadow asks you to travel.
-  world.entities.push({
-    id: world.nextId++,
-    identity: "beacon",
-    x: width * (0.72 + random(world) * 0.18),
-    y: height * (0.18 + random(world) * 0.28),
-    facing: 0,
-    speed: 0,
-  });
-
-  const playerId = world.nextId++;
-  world.controlledId = playerId;
-  world.entities.push({
-    id: playerId,
-    identity: "walker",
-    x: width * 0.14,
-    y: height * 0.78,
-    facing: -Math.PI / 2,
-    speed: 110,
-    local: { vx: 0, vy: 0 },
-  });
-
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 48; i++) {
     world.entities.push({
       id: world.nextId++,
-      identity: "walker",
-      x: width * (0.22 + i * 0.12),
-      y: height * (0.62 + i * 0.06),
-      facing: random(world) * Math.PI * 2,
-      speed: 40 + random(world) * 25,
-      local: { vx: 0, vy: 0 },
+      identity: "grass",
+      x: 40 + random(world) * (width - 80),
+      y: 40 + random(world) * (height - 80),
+      facing: 0,
+      speed: 0,
+      local: { amount: 0.25 + random(world) * 0.75 },
     });
   }
 
-  for (let i = 0; i < 6; i++) {
-    world.entities.push({
-      id: world.nextId++,
-      identity: "critter",
-      x: 80 + random(world) * (width - 160),
-      y: 80 + random(world) * (height - 160),
-      facing: random(world) * Math.PI * 2,
-      speed: 70 + random(world) * 40,
-      local: { alarm: 0 },
-    });
-  }
-
-  const flowerCount = 8;
-  for (let i = 0; i < flowerCount; i++) {
+  for (let i = 0; i < 5; i++) {
     world.entities.push({
       id: world.nextId++,
       identity: "flower",
-      x: 80 + random(world) * (width - 160),
-      y: 80 + random(world) * (height - 160),
+      x: 60 + random(world) * (width - 120),
+      y: 60 + random(world) * (height - 120),
       facing: 0,
       speed: 0,
-      local: { bloomed: false },
+      local: {
+        amount: 0.2 + random(world) * 0.5,
+        bloomed: false,
+        age: 0,
+      },
     });
   }
-  world.flowerGoal = flowerCount;
+
+  const focusId = world.nextId++;
+  world.focusId = focusId;
+  world.entities.push({
+    id: focusId,
+    identity: "creature",
+    x: width * 0.4,
+    y: height * 0.55,
+    facing: random(world) * Math.PI * 2,
+    speed: 32 + random(world) * 12,
+    local: { fullness: 0.7, age: 5, cooldown: 0 },
+  });
+
+  for (let i = 0; i < 5; i++) {
+    world.entities.push({
+      id: world.nextId++,
+      identity: "creature",
+      x: 80 + random(world) * (width - 160),
+      y: 80 + random(world) * (height - 160),
+      facing: random(world) * Math.PI * 2,
+      speed: 28 + random(world) * 18,
+      local: {
+        fullness: 0.5 + random(world) * 0.4,
+        age: random(world) * 20,
+        cooldown: random(world) * 6,
+      },
+    });
+  }
 
   return world;
 }
 
-function cycleControlled(world: World): void {
-  if (world.phase !== "playing") return;
-  const walkers = world.entities.filter((e) => e.identity === "walker");
-  if (walkers.length === 0) return;
-  const idx = walkers.findIndex((e) => e.id === world.controlledId);
-  const next = walkers[(idx + 1) % walkers.length]!;
-  world.controlledId = next.id;
-}
-
-function claimControlled(world: World, id: number): void {
-  if (world.phase !== "playing") return;
-  const target = world.entities.find(
-    (e) => e.id === id && e.identity === "walker",
-  );
-  if (target) world.controlledId = target.id;
-}
-
-function checkWin(world: World): void {
-  if (world.phase !== "playing") return;
-  if (!gardenComplete(world)) return;
-  const player = world.entities.find((e) => e.id === world.controlledId);
-  if (!player) return;
-  const beacon = nearest(world, "beacon", player.x, player.y);
-  if (!beacon) return;
-  const dx = player.x - beacon.x;
-  const dy = player.y - beacon.y;
-  if (dx * dx + dy * dy <= REACH * REACH) {
-    world.phase = "won";
-    world.steerX = 0;
-    world.steerY = 0;
-  }
-}
-
-export function step(world: World, dt: number, intent: Intent): void {
-  if (world.phase === "playing") {
-    if (intent.claimControl !== undefined) {
-      claimControlled(world, intent.claimControl);
-    } else if (intent.cycleControl) {
-      cycleControlled(world);
-    }
-    world.steerX = intent.steerX;
-    world.steerY = intent.steerY;
-  } else {
-    world.steerX = 0;
-    world.steerY = 0;
-  }
-
-  world.time += dt;
-  world.tick += 1;
-
-  if (world.phase === "playing") {
-    // Snapshot the list so behave may despawn without skipping siblings.
-    for (const e of [...world.entities]) {
-      const def = identities[e.identity];
-      def?.behave?.(e, world, dt);
-    }
-    // Spawn after behave so new entities do not run on the flush tick.
-    flushFlowerRegrows(world);
-    checkWin(world);
-  }
-}
-
-/** Plain-data canary: if this needs custom logic, the architecture drifted. */
 export function serialize(world: World): string {
   return JSON.stringify(world);
 }
 
-/** Restore simulation state. Viewport is host-only — never written into World. */
 export function deserialize(text: string): World {
   return JSON.parse(text) as World;
 }

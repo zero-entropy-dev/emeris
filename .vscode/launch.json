@@ -6,9 +6,22 @@
       "type": "node",
       "request": "launch",
       "program": "${workspaceFolder}/scripts/run.mjs",
+      "cwd": "${workspaceFolder}",
       "noDebug": true,
-      "console": "internalConsole",
-      "internalConsoleOptions": "neverOpen",
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_OPTIONS": null,
+        "VSCODE_INSPECTOR_OPTIONS": null
+      }
+    },
+    {
+      "name": "Run arena",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/forks/emeris-arena/scripts/run.mjs",
+      "cwd": "${workspaceFolder}/forks/emeris-arena",
+      "noDebug": true,
+      "console": "integratedTerminal",
       "env": {
         "NODE_OPTIONS": null,
         "VSCODE_INSPECTOR_OPTIONS": null

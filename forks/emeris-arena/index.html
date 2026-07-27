@@ -3,20 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Emeris</title>
+    <title>Emeris Arena</title>
     <style>
       html,
       body {
         margin: 0;
         height: 100%;
-        background: #111;
+        background: #0c1018;
         overflow: hidden;
-        font-family: Georgia, "Times New Roman", serif;
+        font-family: ui-monospace, Consolas, monospace;
       }
       canvas {
         display: block;
         width: 100vw;
         height: 100vh;
+        cursor: crosshair;
       }
       #hint {
         position: fixed;
@@ -32,7 +33,7 @@
   </head>
   <body>
     <canvas id="view"></canvas>
-    <p id="hint">Space style · P snapshot · R restore · N new seed</p>
+    <p id="hint">WASD move · mouse look · click fire · Space style · P snapshot</p>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

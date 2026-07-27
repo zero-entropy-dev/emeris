@@ -2,16 +2,14 @@
 
 export type { Identity, IdentityDef } from "./identity";
 export {
-  meadowIdentities,
-  nearest,
-  nearestFood,
-  isFoodSource,
-  dayOf,
-  growthFactor,
-  DAY_SECONDS,
-  store,
+  arenaIdentities,
+  blocked,
   decay,
   emit,
+  isEnemy,
+  levelOf,
+  solidAt,
+  store,
   transform,
 } from "./identity";
 export type { LocalNumber } from "./identity";
@@ -21,8 +19,8 @@ export type { ProcessDef, ProcessOutcome, ProcessStep } from "./process";
 export { advanceProcess, varsOf } from "./process";
 export type { Entity, EntityLocal, Intent, World } from "./world";
 export {
-  MEADOW_HEIGHT,
-  MEADOW_WIDTH,
+  ARENA_COLS,
+  ARENA_ROWS,
   addEntity,
   createWorld,
   deserialize,

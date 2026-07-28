@@ -2,7 +2,7 @@
   "name": "emeris",
   "private": true,
   "version": "0.0.5",
-  "description": "Emeris is a small experimental game engine. World-first architecture: add only what is necessary to produce rich, living worlds.",
+  "description": "Experimental game engine (TypeScript + canvas) where the world is sovereign. Living meadow; the same thin core stretches into FPS and tactics under forks/.",
   "type": "module",
   "scripts": {
     "dev": "node scripts/run.mjs",

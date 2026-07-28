@@ -1,9 +1,9 @@
 # Emeris
 
-Emeris is a small experimental game engine.
-It explores world-first architecture — add only what is necessary to produce rich, living worlds.
+Emeris is a small experimental game engine — TypeScript, browser canvas, the world as source of truth.
+A thin core (**World**, **Entity**, **Identity**, **Style**, **Mark**) that already carries a living meadow and forks that look nothing like it: first-person arena, discrete tactics. Add only what is necessary.
 
-The living world here is the **meadow**. TypeScript, browser canvas. Pressure-test forks live under [`forks/`](forks/) and do not replace it.
+The **meadow** stays primary. Pressure-tests live under [`forks/`](forks/) and do not replace it.
 
 ## Core ideas
 

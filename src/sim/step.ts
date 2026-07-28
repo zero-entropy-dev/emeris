@@ -1,6 +1,5 @@
 /** Advance the world one tick. Imports the identity registry; world state does not. */
 
-import { advanceProcess } from "./process";
 import { identities } from "./registry";
 import { type Intent, type World } from "./world";
 
@@ -32,12 +31,6 @@ export function step(world: World, dt: number, intent: Intent): void {
   world.tick += 1;
 
   for (const e of [...world.entities]) {
-    const def = identities[e.identity];
-    if (!def) continue;
-    if (def.process) {
-      advanceProcess(e, world, dt, def.process);
-    } else {
-      def.behave?.(e, world, dt);
-    }
+    identities[e.identity]?.behave?.(e, world, dt);
   }
 }

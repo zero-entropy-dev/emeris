@@ -45,10 +45,6 @@ export type EntityLocal = {
   age?: number;
   /** Creature reproduction cooldown remaining (seconds). */
   cooldown?: number;
-  /** Described-process program counter (when Identity uses process). */
-  pc?: number;
-  /** Described-process numeric locals (when Identity uses process). */
-  vars?: Record<string, number>;
 };
 
 export type Entity = {

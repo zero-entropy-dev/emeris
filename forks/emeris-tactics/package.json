@@ -1,8 +1,8 @@
 {
-  "name": "emeris",
+  "name": "emeris-tactics",
   "private": true,
-  "version": "0.0.5",
-  "description": "Emeris is a small experimental game engine. World-first architecture: add only what is necessary to produce rich, living worlds.",
+  "version": "0.0.1",
+  "description": "Emeris tactics — turn-based grid pressure-test on world-first Emeris law.",
   "type": "module",
   "scripts": {
     "dev": "node scripts/run.mjs",

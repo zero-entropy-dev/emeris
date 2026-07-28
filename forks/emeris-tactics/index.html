@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Emeris Tactics</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #12160f;
+        overflow: hidden;
+        font-family: ui-monospace, Consolas, monospace;
+      }
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        cursor: pointer;
+      }
+      #hint {
+        position: fixed;
+        left: 1rem;
+        bottom: 1rem;
+        margin: 0;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.85rem;
+        letter-spacing: 0.02em;
+        pointer-events: none;
+        max-width: calc(100vw - 2rem);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <p id="hint">round 1 · click a green unit · Space style · P/R · N</p>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

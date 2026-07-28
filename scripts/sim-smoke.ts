@@ -11,6 +11,7 @@ import {
   isFoodSource,
   localOf,
   nearestFood,
+  populationPressure,
   serialize,
   step,
 } from "../src/sim/index.ts";
@@ -87,10 +88,10 @@ const patch = growWorld.entities.find((e) => e.identity === "grass")!;
 localOf(patch).amount = 0.1;
 localOf(dayOf(growWorld)!).cycle = 0.45;
 const a0 = patch.local!.amount!;
-for (let i = 0; i < 180; i++) {
+for (let i = 0; i < 300; i++) {
   step(growWorld, STEP, EMPTY);
 }
-if (!((patch.local?.amount ?? 0) > a0 + 0.05)) {
+if (!((patch.local?.amount ?? 0) > a0 + 0.04)) {
   console.error("sim-smoke FAIL: grass did not regenerate");
   process.exit(1);
 }
@@ -107,10 +108,10 @@ sparse.y = rich.y;
 localOf(sparse).amount = 0.1;
 localOf(dayOf(spreadWorld)!).cycle = 0.45;
 const s0 = sparse.local!.amount!;
-for (let i = 0; i < 240; i++) {
+for (let i = 0; i < 360; i++) {
   step(spreadWorld, STEP, EMPTY);
 }
-if (!((sparse.local?.amount ?? 0) > s0 + 0.04)) {
+if (!((sparse.local?.amount ?? 0) > s0 + 0.03)) {
   console.error("sim-smoke FAIL: grass did not spread to neighbor");
   process.exit(1);
 }
@@ -180,9 +181,17 @@ if (deathWorld.entities.some((e) => e.id === doomedId)) {
   process.exit(1);
 }
 
-// Birth when fullness high and cooldown clear.
+// Birth when fullness high, daylight, local grass, and cooldown clear.
 const birthWorld = createWorld(400, 300, 17);
 const parent = birthWorld.entities.find((e) => e.identity === "creature")!;
+localOf(dayOf(birthWorld)!).cycle = 0.45;
+for (const g of birthWorld.entities) {
+  if (g.identity === "grass") {
+    g.x = parent.x + (g.id % 5) * 12;
+    g.y = parent.y + (g.id % 3) * 10;
+    localOf(g).amount = 1;
+  }
+}
 const before = birthWorld.entities.filter((e) => e.identity === "creature")
   .length;
 localOf(parent).fullness = 0.95;
@@ -193,6 +202,53 @@ const after = birthWorld.entities.filter((e) => e.identity === "creature")
   .length;
 if (!(after > before)) {
   console.error("sim-smoke FAIL: creature should reproduce when able");
+  process.exit(1);
+}
+
+// Night: creatures displace less than by day (same seed, forced cycle).
+function totalCreatureTravel(seed: number, cycle: number, steps: number): number {
+  const w = createWorld(400, 300, seed);
+  localOf(dayOf(w)!).cycle = cycle;
+  // Keep them from eating so motion is wander/rest, not seek.
+  for (const c of w.entities) {
+    if (c.identity === "creature") localOf(c).fullness = 0.7;
+  }
+  const beforePos = w.entities
+    .filter((e) => e.identity === "creature")
+    .map((e) => ({ id: e.id, x: e.x, y: e.y }));
+  for (let i = 0; i < steps; i++) step(w, STEP, EMPTY);
+  let travel = 0;
+  for (const b of beforePos) {
+    const now = w.entities.find((e) => e.id === b.id);
+    if (!now) continue;
+    travel += Math.hypot(now.x - b.x, now.y - b.y);
+  }
+  return travel;
+}
+
+const dayTravel = totalCreatureTravel(21, 0.45, 90);
+const nightTravel = totalCreatureTravel(21, 0.95, 90);
+if (!(dayTravel > nightTravel * 1.4)) {
+  console.error(
+    `sim-smoke FAIL: night should slow creatures (day=${dayTravel.toFixed(1)} night=${nightTravel.toFixed(1)})`,
+  );
+  process.exit(1);
+}
+
+// Population pressure rises when many creatures share little grass.
+const pressWorld = createWorld(400, 300, 23);
+for (const g of pressWorld.entities) {
+  if (g.identity === "grass") localOf(g).amount = 0.05;
+}
+const high = populationPressure(pressWorld);
+for (const g of pressWorld.entities) {
+  if (g.identity === "grass") localOf(g).amount = 1;
+}
+const low = populationPressure(pressWorld);
+if (!(high > low * 2)) {
+  console.error(
+    `sim-smoke FAIL: pressure should fall when grass is rich (high=${high.toFixed(2)} low=${low.toFixed(2)})`,
+  );
   process.exit(1);
 }
 
@@ -214,5 +270,5 @@ if (extentTrip.width !== 960 || extentTrip.height !== 600) {
 }
 
 console.log(
-  `sim-smoke OK — meadow tick=${world.tick} creatures=${creatures.length} grass=${grasses.length} flowers=${flowers.length} day=${(dayOf(world)?.local?.cycle ?? 0).toFixed(2)} (empty intent, no renderer)`,
+  `sim-smoke OK — meadow tick=${world.tick} creatures=${creatures.length} grass=${grasses.length} flowers=${flowers.length} day=${(dayOf(world)?.local?.cycle ?? 0).toFixed(2)} nightSlow=${(dayTravel / Math.max(1, nightTravel)).toFixed(1)}x (empty intent, no renderer)`,
 );

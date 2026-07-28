@@ -6,7 +6,7 @@
  * Same laws apply to `frame` (backdrop + chrome around the entity pass).
  */
 
-import { dayOf, type Entity, type Identity, type World } from "./sim";
+import { dayOf, isNight, populationPressure, type Entity, type Identity, type World } from "./sim";
 
 /** Host viewport in CSS pixels — observer only, never written into World. */
 export type View = { width: number; height: number };
@@ -69,6 +69,7 @@ function paintChrome(
   ctx.textBaseline = "top";
 
   const cycle = dayOf(world)?.local?.cycle ?? 0;
+  const night = isNight(world);
   const creatures = world.entities.filter((e) => e.identity === "creature");
   const grasses = world.entities.filter((e) => e.identity === "grass");
   const flowers = world.entities.filter((e) => e.identity === "flower");
@@ -82,13 +83,22 @@ function paintChrome(
       : creatures.reduce((s, c) => s + (c.local?.fullness ?? 0), 0) /
         creatures.length;
   const blooming = flowers.filter((f) => f.local?.bloomed).length;
+  const pressure = populationPressure(world);
+  const phase = night ? "creatures resting" : "creatures active";
+  const stress =
+    pressure > 0.55 ? "crowded" : pressure > 0.35 ? "pressed" : "ample";
 
   ctx.fillText("Observing — meadow", 16, 16);
   ctx.fillStyle = muted;
   ctx.fillText(
-    `${timeOfDayWord(cycle)} · creatures ${creatures.length} · fullness ${meanFullness.toFixed(2)} · grass ${(cover * 100).toFixed(0)}% · flowers ${flowers.length}${blooming ? ` (${blooming} open)` : ""}`,
+    `${timeOfDayWord(cycle)} · ${phase} · creatures ${creatures.length} · fullness ${meanFullness.toFixed(2)} · grass ${(cover * 100).toFixed(0)}% · ${stress}`,
     16,
     36,
+  );
+  ctx.fillText(
+    `flowers ${flowers.length}${blooming ? ` (${blooming} open)` : ""} · pressure ${pressure.toFixed(2)}`,
+    16,
+    56,
   );
   void ink;
 }
@@ -101,7 +111,7 @@ function makeFrame(
 ): Style["frame"] {
   return (ctx, world, view, cam, entities) => {
     const cycle = dayOf(world)?.local?.cycle ?? 0.5;
-    const night = cycle < 0.18 || cycle >= 0.82;
+    const night = isNight(world);
     const dusk = !night && (cycle < 0.28 || cycle >= 0.68);
 
     // Full-bleed ground — the world is the meadow, not a stage ellipse.
@@ -258,16 +268,21 @@ function proceduralCreature(
   return (ctx, e, world) => {
     const s = markScale;
     const fullness = e.local?.fullness ?? 0;
-    const r = (5 + fullness * 7) * s;
-    const lean = (visualHash(e.id, world.tick, 3) - 0.5) * 0.15;
-    const hungry = fullness < 0.45;
+    const night = isNight(world);
+    const r = (5 + fullness * 7) * s * (night ? 0.92 : 1);
+    const lean = night
+      ? (visualHash(e.id, world.tick, 3) - 0.5) * 0.04
+      : (visualHash(e.id, world.tick, 3) - 0.5) * 0.15;
+    const hungry = night ? fullness < 0.22 : fullness < 0.45;
 
     ctx.save();
     ctx.translate(e.x, e.y - r);
     ctx.rotate(e.facing + lean);
 
     ctx.fillStyle = body;
-    ctx.globalAlpha = 0.55 + fullness * 0.45;
+    ctx.globalAlpha = night
+      ? 0.35 + fullness * 0.35
+      : 0.55 + fullness * 0.45;
     ctx.beginPath();
     ctx.ellipse(0, 0, r * 1.25, r * 0.85, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -288,7 +303,7 @@ function proceduralCreature(
 
     if (hungry) {
       ctx.strokeStyle = accent;
-      ctx.globalAlpha = 0.55 + (0.45 - fullness);
+      ctx.globalAlpha = 0.55 + Math.max(0, 0.45 - fullness);
       ctx.lineWidth = 2 * s;
       ctx.beginPath();
       ctx.arc(0, 0, r * 1.65, 0, Math.PI * 2);

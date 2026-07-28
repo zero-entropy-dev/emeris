@@ -5,7 +5,6 @@
  */
 
 import { random } from "./rng";
-import type { ProcessDef } from "./process";
 import {
   addEntity,
   localOf,
@@ -24,11 +23,6 @@ export type IdentityDef = {
   describes: string;
   /** How it acts each tick. Absent means inert. */
   behave?: (e: Entity, world: World, dt: number) => void;
-  /**
-   * Described process — optional alternate to behave.
-   * Not a sixth core name: still Identity acting.
-   */
-  process?: ProcessDef;
 };
 
 /** Numeric locals the state transforms may touch. */
@@ -37,8 +31,7 @@ export type LocalNumber =
   | "amount"
   | "fullness"
   | "age"
-  | "cooldown"
-  | "pc";
+  | "cooldown";
 
 /**
  * Caller-blind state transforms — tiny composable ops on Entity.local.
@@ -141,26 +134,64 @@ export function growthFactor(world: World): number {
   return 0.05 + daylight * 1.35;
 }
 
+/** Night band — matches Style’s night read of the day cycle. */
+export function isNight(world: World): boolean {
+  const cycle = dayOf(world)?.local?.cycle ?? 0.5;
+  return cycle < 0.2 || cycle >= 0.85;
+}
+
+/**
+ * How active mobile life should feel (1 = bright day, ~0.3 = deep night).
+ * Creatures use this; plants already use growthFactor.
+ */
+export function activityFactor(world: World): number {
+  if (isNight(world)) return 0.3;
+  const g = growthFactor(world);
+  return clamp(0.45 + g * 0.4, 0.45, 1);
+}
+
+/** Total edible grass biomass — for population pressure, not a World field. */
+export function grassBiomass(world: World): number {
+  let sum = 0;
+  for (const e of world.entities) {
+    if (e.identity === "grass") sum += e.local?.amount ?? 0;
+  }
+  return sum;
+}
+
+/**
+ * Creatures per unit grass biomass. High pressure → faster hunger, harder births.
+ * Pairwise grass↔creature tension without a new identity.
+ */
+export function populationPressure(world: World): number {
+  const n = world.entities.filter((e) => e.identity === "creature").length;
+  const bio = Math.max(2, grassBiomass(world));
+  return n / bio;
+}
+
 /** True when this entity can be eaten right now. Today: grass with amount. */
 export function isFoodSource(e: Entity): boolean {
   return e.identity === "grass" && (e.local?.amount ?? 0) > 0.05;
 }
 
-/** Nearest edible entity to a point — food sources, not hard-coded grass. */
+/** Prefer rich nearby food over merely nearest crumbs. */
 export function nearestFood(
   world: World,
   x: number,
   y: number,
 ): Entity | undefined {
   let best: Entity | undefined;
-  let bestD = Infinity;
+  let bestScore = -Infinity;
   for (const e of world.entities) {
     if (!isFoodSource(e)) continue;
     const dx = e.x - x;
     const dy = e.y - y;
-    const d = dx * dx + dy * dy;
-    if (d < bestD) {
-      bestD = d;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const amount = e.local?.amount ?? 0;
+    // Closer and richer wins — slight preference for plump patches.
+    const score = amount / (12 + dist) - dist * 0.0015;
+    if (score > bestScore) {
+      bestScore = score;
       best = e;
     }
   }
@@ -173,11 +204,13 @@ export function nearest(
   identity: Identity,
   x: number,
   y: number,
+  exceptId?: number,
 ): Entity | undefined {
   let best: Entity | undefined;
   let bestD = Infinity;
   for (const e of world.entities) {
     if (e.identity !== identity) continue;
+    if (exceptId !== undefined && e.id === exceptId) continue;
     const dx = e.x - x;
     const dy = e.y - y;
     const d = dx * dx + dy * dy;
@@ -189,10 +222,10 @@ export function nearest(
   return best;
 }
 
-const GRASS_GROW = 0.055;
-const GRASS_SPREAD_RATE = 0.03;
+const GRASS_GROW = 0.032;
+const GRASS_SPREAD_RATE = 0.016;
 const GRASS_SPREAD_RADIUS = 55;
-const FLOWER_SPAWN_CHANCE = 0.012;
+const FLOWER_SPAWN_CHANCE = 0.01;
 const FLOWER_SPAWN_COST = 0.18;
 const FLOWER_CAP = 18;
 const FLOWER_GROW = 0.05;
@@ -200,17 +233,39 @@ const FLOWER_BLOOM_AT = 0.85;
 const FLOWER_WILT_SECONDS = 14;
 const FLOWER_WILT_RETURN = 0.12;
 const FLOWER_WILT_RADIUS = 70;
-const FULLNESS_DRAIN = 0.08;
+const FULLNESS_DRAIN = 0.09;
 const FRAIL_AGE = 40;
 const FRAIL_MULT = 1.75;
-const FULLNESS_EAT = 0.35;
-const FOOD_BITE = 0.22;
-const HUNGRY = 0.45;
-const REPRODUCE_FULLNESS = 0.85;
-const REPRODUCE_COOLDOWN = 12;
+const FULLNESS_EAT = 0.32;
+const FOOD_BITE = 0.2;
+const HUNGRY_DAY = 0.55;
+const HUNGRY_NIGHT = 0.22;
+const REPRODUCE_FULLNESS = 0.9;
+const REPRODUCE_COOLDOWN = 18;
+const REPRODUCE_MIN_AGE = 10;
+const REPRODUCE_GRASS_RADIUS = 90;
+const REPRODUCE_MIN_LOCAL_GRASS = 1.2;
 const EAT_RADIUS = 28;
-const SEEK_SPEED = 1.15;
-const CHILD_FULLNESS = 0.45;
+const SEEK_SPEED = 1.38;
+const NIGHT_SPEED = 0.32;
+const NIGHT_DRAIN = 0.55;
+const CLUSTER_RADIUS = 160;
+const CHILD_FULLNESS = 0.4;
+/** Soft ceiling: births stall when creatures exceed this share of biomass. */
+const PRESSURE_BIRTH_BLOCK = 0.55;
+
+function localGrassWealth(world: World, x: number, y: number): number {
+  let sum = 0;
+  const r2 = REPRODUCE_GRASS_RADIUS * REPRODUCE_GRASS_RADIUS;
+  for (const g of world.entities) {
+    if (g.identity !== "grass") continue;
+    const dx = g.x - x;
+    const dy = g.y - y;
+    if (dx * dx + dy * dy > r2) continue;
+    sum += g.local?.amount ?? 0;
+  }
+  return sum;
+}
 
 function behaveDay(e: Entity, _world: World, dt: number): void {
   transform(e, "cycle", (c) => (c + dt / DAY_SECONDS) % 1);
@@ -218,7 +273,10 @@ function behaveDay(e: Entity, _world: World, dt: number): void {
 
 function behaveGrass(e: Entity, world: World, dt: number): void {
   const factor = growthFactor(world);
-  store(e, "amount", GRASS_GROW * factor * dt, 1);
+  // Heavy grazing pressure slows recovery slightly — meadow breathes.
+  const pressure = populationPressure(world);
+  const recover = factor / (1 + pressure * 0.35);
+  store(e, "amount", GRASS_GROW * recover * dt, 1);
   const amount = e.local?.amount ?? 0;
 
   // Light spread: near-full patches feed a nearby sparse neighbor.
@@ -238,7 +296,7 @@ function behaveGrass(e: Entity, world: World, dt: number): void {
       }
     }
     if (needy) {
-      store(needy, "amount", GRASS_SPREAD_RATE * factor * dt, 1);
+      store(needy, "amount", GRASS_SPREAD_RATE * recover * dt, 1);
     }
   }
 
@@ -296,9 +354,16 @@ function behaveCreature(e: Entity, world: World, dt: number): void {
   transform(e, "age", (a) => a + dt);
   decay(e, "cooldown", dt);
 
+  const night = isNight(world);
+  const activity = activityFactor(world);
+  const pressure = populationPressure(world);
   const age = e.local?.age ?? 0;
-  const drain = FULLNESS_DRAIN * (age > FRAIL_AGE ? FRAIL_MULT : 1) * dt;
-  decay(e, "fullness", drain);
+
+  const drainMult =
+    (age > FRAIL_AGE ? FRAIL_MULT : 1) *
+    (night ? NIGHT_DRAIN : 1) *
+    (1 + pressure * 1.1);
+  decay(e, "fullness", FULLNESS_DRAIN * drainMult * dt);
   let fullness = e.local?.fullness ?? 0;
 
   if (fullness <= 0) {
@@ -306,8 +371,10 @@ function behaveCreature(e: Entity, world: World, dt: number): void {
     return;
   }
 
-  const hungry = fullness < HUNGRY;
+  const hungryAt = night ? HUNGRY_NIGHT : HUNGRY_DAY;
+  const hungry = fullness < hungryAt;
   const food = hungry ? nearestFood(world, e.x, e.y) : undefined;
+  const moveScale = night ? NIGHT_SPEED : activity;
 
   if (food) {
     const dx = food.x - e.x;
@@ -316,7 +383,7 @@ function behaveCreature(e: Entity, world: World, dt: number): void {
     if (dist > 1e-3) {
       e.facing = Math.atan2(dy, dx);
     }
-    const speed = e.speed * SEEK_SPEED;
+    const speed = e.speed * SEEK_SPEED * moveScale;
     e.x += Math.cos(e.facing) * speed * dt;
     e.y += Math.sin(e.facing) * speed * dt;
     keepInBounds(e, world);
@@ -328,19 +395,44 @@ function behaveCreature(e: Entity, world: World, dt: number): void {
         fullness = e.local?.fullness ?? 0;
       }
     }
+  } else if (night) {
+    // Rest / soft cluster — night is felt in motion, not only tint.
+    const peer = nearest(world, "creature", e.x, e.y, e.id);
+    if (peer) {
+      const dx = peer.x - e.x;
+      const dy = peer.y - e.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 18 && dist < CLUSTER_RADIUS) {
+        e.facing = Math.atan2(dy, dx);
+      } else {
+        e.facing += (random(world) - 0.5) * 0.6 * dt;
+      }
+    } else {
+      e.facing += (random(world) - 0.5) * 0.6 * dt;
+    }
+    const speed = e.speed * moveScale * 0.85;
+    e.x += Math.cos(e.facing) * speed * dt;
+    e.y += Math.sin(e.facing) * speed * dt;
+    keepInBounds(e, world);
   } else {
-    e.x += Math.cos(e.facing) * e.speed * dt;
-    e.y += Math.sin(e.facing) * e.speed * dt;
+    e.x += Math.cos(e.facing) * e.speed * moveScale * dt;
+    e.y += Math.sin(e.facing) * e.speed * moveScale * dt;
     keepInBounds(e, world);
     e.facing += (random(world) - 0.5) * 1.4 * dt;
   }
 
-  if (
+  // Births: daylight, well-fed, local grass wealth, not overpopulated.
+  const canBirth =
+    !night &&
+    growthFactor(world) > 0.55 &&
     fullness >= REPRODUCE_FULLNESS &&
     (e.local?.cooldown ?? 0) <= 0 &&
-    age > 8
-  ) {
-    transform(e, "fullness", (f) => f * 0.55);
+    age > REPRODUCE_MIN_AGE &&
+    pressure < PRESSURE_BIRTH_BLOCK &&
+    localGrassWealth(world, e.x, e.y) >= REPRODUCE_MIN_LOCAL_GRASS;
+
+  if (canBirth) {
+    transform(e, "fullness", (f) => f * 0.5);
     store(e, "cooldown", REPRODUCE_COOLDOWN);
     const angle = random(world) * Math.PI * 2;
     const dist = 20 + random(world) * 24;
@@ -385,7 +477,7 @@ export const meadowIdentities: Record<Identity, IdentityDef> = {
   creature: {
     id: "creature",
     describes:
-      "A meadow animal that wanders, seeks food when hungry, reproduces when able, and dies when spent.",
+      "A meadow animal that feeds by day, slows and clusters at night, reproduces only when the meadow can support it, and dies when spent.",
     behave: behaveCreature,
   },
 };

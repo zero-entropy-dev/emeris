@@ -26,6 +26,19 @@
         "NODE_OPTIONS": null,
         "VSCODE_INSPECTOR_OPTIONS": null
       }
+    },
+    {
+      "name": "Run tactics",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/forks/emeris-tactics/scripts/run.mjs",
+      "cwd": "${workspaceFolder}/forks/emeris-tactics",
+      "noDebug": true,
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_OPTIONS": null,
+        "VSCODE_INSPECTOR_OPTIONS": null
+      }
     }
   ]
 }

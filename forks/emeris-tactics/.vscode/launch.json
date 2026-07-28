@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run tactics",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/run.mjs",
+      "cwd": "${workspaceFolder}",
+      "noDebug": true,
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_OPTIONS": null,
+        "VSCODE_INSPECTOR_OPTIONS": null
+      }
+    }
+  ]
+}

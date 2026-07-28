@@ -2,23 +2,35 @@
 
 export type { Identity, IdentityDef } from "./identity";
 export {
-  arenaIdentities,
-  blocked,
-  decay,
-  emit,
-  isEnemy,
-  levelOf,
+  tacticsIdentities,
+  boardOf,
+  isUnit,
+  unitsOf,
+  squadOrder,
+  readyUnits,
+  currentActor,
+  unitAt,
   solidAt,
-  store,
-  transform,
+  manhattan,
+  canMove,
+  canAttack,
+  applyCommitment,
+  applyPlayerIntent,
 } from "./identity";
-export type { LocalNumber } from "./identity";
 export { identities } from "./registry";
 export { random, type RngHost } from "./rng";
-export type { Entity, EntityLocal, Intent, World } from "./world";
+export type {
+  Entity,
+  EntityLocal,
+  Intent,
+  IntentAction,
+  World,
+} from "./world";
 export {
-  ARENA_COLS,
-  ARENA_ROWS,
+  BOARD_COLS,
+  BOARD_ROWS,
+  SIDE_ENEMY,
+  SIDE_PLAYER,
   addEntity,
   createWorld,
   deserialize,

@@ -3,7 +3,6 @@
  */
 
 import { random } from "./rng";
-import type { ProcessDef } from "./process";
 import {
   addEntity,
   localOf,
@@ -19,10 +18,9 @@ export type IdentityDef = {
   id: Identity;
   describes: string;
   behave?: (e: Entity, world: World, dt: number) => void;
-  process?: ProcessDef;
 };
 
-export type LocalNumber = "age" | "cooldown" | "score" | "pc" | "cols" | "rows";
+export type LocalNumber = "age" | "cooldown" | "score" | "cols" | "rows";
 
 export function store(
   e: Entity,

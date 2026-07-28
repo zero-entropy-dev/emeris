@@ -1,0 +1,5 @@
+{
+  "task.allowAutomaticTasks": "off",
+  "debug.javascript.autoAttachFilter": "disabled",
+  "debug.node.autoAttach": "disabled"
+}

@@ -1,9 +1,9 @@
 # Emeris
 
 Emeris is a small experimental game engine.
-It explores world-first architecture — the smallest collection of ideas that can produce rich, living worlds.
+It explores world-first architecture — add only what is necessary to produce rich, living worlds.
 
-One active world in the root tree: the **meadow**. TypeScript, browser canvas. Pressure-test forks live under [`forks/`](forks/) and do **not** replace the meadow.
+The living world here is the **meadow**. TypeScript, browser canvas. Pressure-test forks live under [`forks/`](forks/) and do not replace it.
 
 ## Core ideas
 
@@ -11,15 +11,15 @@ One active world in the root tree: the **meadow**. TypeScript, browser canvas. P
 |---------|------|
 | **World** | Sole serializable citizen |
 | **Entity** | Identity + pose/motion + optional `local` |
-| **Identity** | What something *is* (optional `behave` / `process`) |
+| **Identity** | What something *is* (optional `behave`) |
 | **Style** | Programmable interpretation — `frame` maps identities to Marks |
 | **Mark** | One appearance call; may read the world, never mutate it |
 
-Described **process** is how Identity acts when present — not a sixth name.
+Intent is the host→world boundary — not a sixth name.
 
 ## The meadow
 
-Day and night. Grass regenerates, spreads, feeds creatures. Flowers bloom and wilt. Creatures show fullness. Trees stand. A living world you can watch; input may arrive when the world asks.
+Day and night shape the living meadow. Grass regenerates by day, spreads, feeds creatures. Flowers bloom and wilt. Creatures slow and rest at night; fullness and hunger drive the day. Watch it; Intent may cross the boundary when a world asks for influence.
 
 ## Run
 
@@ -30,7 +30,7 @@ npm run dev
 
 [http://127.0.0.1:5173/](http://127.0.0.1:5173/) · **Run and Debug → Run meadow**
 
-Arena: **Run arena** → http://127.0.0.1:5174/ — [`forks/README.md`](forks/README.md)
+Arena: **Run arena** → http://127.0.0.1:5174/ · Tactics: **Run tactics** → http://127.0.0.1:5175/ — [`forks/README.md`](forks/README.md)
 
 Headless: `npm run smoke`
 

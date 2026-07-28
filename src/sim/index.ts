@@ -8,6 +8,10 @@ export {
   isFoodSource,
   dayOf,
   growthFactor,
+  isNight,
+  activityFactor,
+  grassBiomass,
+  populationPressure,
   DAY_SECONDS,
   store,
   decay,
@@ -17,8 +21,6 @@ export {
 export type { LocalNumber } from "./identity";
 export { identities } from "./registry";
 export { random, type RngHost } from "./rng";
-export type { ProcessDef, ProcessOutcome, ProcessStep } from "./process";
-export { advanceProcess, varsOf } from "./process";
 export type { Entity, EntityLocal, Intent, World } from "./world";
 export {
   MEADOW_HEIGHT,

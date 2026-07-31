@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{PROJECT_TITLE}}</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #111;
+        overflow: hidden;
+        font-family: Georgia, "Times New Roman", serif;
+      }
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      #hint {
+        position: fixed;
+        left: 1rem;
+        bottom: 1rem;
+        margin: 0;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 0.85rem;
+        letter-spacing: 0.02em;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <p id="hint">Space style · P snapshot · R restore · N new seed</p>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

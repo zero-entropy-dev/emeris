@@ -8,7 +8,10 @@
     "dev": "node scripts/run.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "smoke": "tsx scripts/sim-smoke.ts"
+    "smoke": "tsx scripts/sim-smoke.ts",
+    "pack:launcher": "node launcher/pack.mjs",
+    "build:launcher": "npm run pack:launcher && npm run compile:launcher",
+    "compile:launcher": "go build -C launcher -ldflags=\"-s -w\" -o ../dist/EmerisLauncher.exe ."
   },
   "devDependencies": {
     "tsx": "^4.20.3",

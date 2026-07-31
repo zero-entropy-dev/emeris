@@ -4,3 +4,5 @@ dist/
 .DS_Store
 *.zip
 .cursor/
+launcher/embedded/
+launcher/.pack-staging/

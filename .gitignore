@@ -6,3 +6,9 @@ dist/
 .cursor/
 launcher/embedded/
 launcher/.pack-staging/
+
+# Private working docs — not part of the public artifact
+AGENTS.md
+HISTORY.md
+forks/**/AGENTS.md
+

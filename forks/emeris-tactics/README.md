@@ -2,7 +2,7 @@
 
 Turn-based grid pressure-test for Emeris. Small squad vs squad on an 8×8 board.
 
-**Not** a tactics product — asks whether World / Entity / Identity / Style / Mark survive discrete turns. Parent law: root [`AGENTS.md`](../../AGENTS.md). Fork delta: [`AGENTS.md`](AGENTS.md).
+**Not** a tactics product — asks whether World / Entity / Identity / Style / Mark survive discrete turns. The meadow in the parent tree stays primary.
 
 ## Run
 

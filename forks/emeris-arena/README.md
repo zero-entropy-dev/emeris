@@ -2,7 +2,7 @@
 
 Simplest playable FPS (raycaster) that still honors Emeris world-first law.
 
-**Not** a product shooter — pressure-tests Intent + Style-as-first-person. Parent law: root [`AGENTS.md`](../../AGENTS.md). Fork delta: [`AGENTS.md`](AGENTS.md).
+**Not** a product shooter — pressure-tests Intent and Style as first-person observation. The meadow in the parent tree stays primary.
 
 ## Run
 

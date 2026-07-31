@@ -42,8 +42,8 @@ Headless: `npm run smoke`
 
 ## Docs
 
-Law + re-entry: [`AGENTS.md`](AGENTS.md) · Architecture: [`ENGINE.md`](ENGINE.md) · History: [`HISTORY.md`](HISTORY.md)
+Architecture: [`ENGINE.md`](ENGINE.md)
 
 ## Launcher
 
-Scaffold a blank project or Demo Meadow (Windows): `npm run build:launcher` → `dist/EmerisLauncher.exe`. See [`launcher/README.md`](launcher/README.md). The launcher owns only project generation — then it exits. Packed starters ship **README.md + ENGINE.md** only (no AGENTS/HISTORY).
+Scaffold a blank project or Demo Meadow (Windows): `npm run build:launcher` → `dist/EmerisLauncher.exe`. See [`launcher/README.md`](launcher/README.md). The launcher owns only project generation — then it exits.

@@ -19,8 +19,8 @@ const ctx: CanvasRenderingContext2D = context;
 const hint = document.querySelector<HTMLParagraphElement>("#hint");
 
 const STEP = 1 / 60;
-/** Host submits empty intent — player agency deferred. */
-const EMPTY_INTENT: Intent = { steerX: 0, steerY: 0 };
+/** Nothing crosses in yet. Give Intent a shape when this world asks for one. */
+const EMPTY_INTENT: Intent = {};
 
 let activeStyles = styles;
 let styleIndex = 0;
@@ -58,14 +58,9 @@ function newWorld(seed: number): void {
 }
 
 resizeCanvas();
-if (world.width !== viewW || world.height !== viewH) {
-  newWorld(seedCounter);
-}
 
-window.addEventListener("resize", () => {
-  resizeCanvas();
-  newWorld(world.seed);
-});
+// The world outlives the window. Resizing only re-fits the observer.
+window.addEventListener("resize", resizeCanvas);
 updateHint();
 
 window.addEventListener("keydown", (e) => {

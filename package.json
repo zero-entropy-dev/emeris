@@ -1,11 +1,12 @@
 {
   "name": "emeris",
   "private": true,
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Experimental game engine (TypeScript + canvas) where the world is sovereign. Living meadow; the same thin core stretches into FPS and tactics under forks/.",
   "type": "module",
   "scripts": {
     "dev": "node scripts/run.mjs",
+    "shell:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-shell.ps1",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "smoke": "tsx scripts/sim-smoke.ts",

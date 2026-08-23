@@ -6,6 +6,9 @@ dist/
 .cursor/
 launcher/embedded/
 launcher/.pack-staging/
+shell/out/
+shell/bin/
+shell/obj/
 
 # Private working docs — not part of the public artifact
 AGENTS.md

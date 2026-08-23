@@ -10,7 +10,7 @@ import {
 } from "../src/sim/index.ts";
 
 const STEP = 1 / 60;
-const EMPTY = { steerX: 0, steerY: 0 };
+const EMPTY = {};
 
 const world = createWorld(800, 600, 42);
 

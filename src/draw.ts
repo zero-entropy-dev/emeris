@@ -4,11 +4,15 @@ import type { Style, View } from "./style";
 export type { View };
 
 /**
- * Single-screen world: extent matches the view; camera stays at origin.
- * No scrolling — nothing lives outside the viewport.
+ * Single-screen world, centred in whatever viewport it is handed. World extent
+ * is fixed at creation; the observer adapts. A larger window shows margin, a
+ * smaller one crops evenly — neither disturbs the world.
  */
-export function cameraOrigin(_world: World, _view: View): { x: number; y: number } {
-  return { x: 0, y: 0 };
+export function cameraCentred(world: World, view: View): { x: number; y: number } {
+  return {
+    x: (world.width - view.width) / 2,
+    y: (world.height - view.height) / 2,
+  };
 }
 
 /**
@@ -22,7 +26,7 @@ export function draw(
   style: Style,
   view: View,
 ): void {
-  const cam = cameraOrigin(world, view);
+  const cam = cameraCentred(world, view);
   style.frame(ctx, world, view, cam, () => {
     const sorted = [...world.entities].sort((a, b) => a.y - b.y);
     for (const e of sorted) {

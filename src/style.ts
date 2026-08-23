@@ -6,6 +6,7 @@
  * Same laws apply to `frame` (backdrop + chrome around the entity pass).
  */
 
+import { CLEAR_FOG, meadowLight, type LightingRecipe } from "./light";
 import { dayOf, isNight, populationPressure, type Entity, type Identity, type World } from "./sim";
 
 /** Host viewport in CSS pixels — observer only, never written into World. */
@@ -19,6 +20,8 @@ export type Mark = (
 
 export type Style = {
   name: string;
+  /** Optional static recipe. Meadow `frame` usually derives one from the day cycle. */
+  light?: LightingRecipe;
   /**
    * Own the full picture: viewport backdrop, camera-transformed world pass,
    * then screen-space chrome. Still Style — not a sixth concept.
@@ -110,25 +113,20 @@ function makeFrame(
   muted: string,
 ): Style["frame"] {
   return (ctx, world, view, cam, entities) => {
-    const cycle = dayOf(world)?.local?.cycle ?? 0.5;
-    const night = isNight(world);
-    const dusk = !night && (cycle < 0.28 || cycle >= 0.68);
+    const light = meadowLight(world, background, ground);
 
     // Full-bleed ground — the world is the meadow, not a stage ellipse.
-    ctx.fillStyle = background;
+    ctx.fillStyle = light.fill;
     ctx.fillRect(0, 0, view.width, view.height);
 
     ctx.save();
     ctx.translate(-cam.x, -cam.y);
-    ctx.fillStyle = ground;
+    ctx.fillStyle = light.ground;
     ctx.fillRect(0, 0, world.width, world.height);
     ctx.restore();
 
-    if (night) {
-      ctx.fillStyle = "rgba(12, 16, 36, 0.42)";
-      ctx.fillRect(0, 0, view.width, view.height);
-    } else if (dusk) {
-      ctx.fillStyle = "rgba(36, 24, 48, 0.22)";
+    if (light.fog !== CLEAR_FOG) {
+      ctx.fillStyle = light.fog;
       ctx.fillRect(0, 0, view.width, view.height);
     }
 

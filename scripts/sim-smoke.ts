@@ -2,6 +2,8 @@
  * Headless canary: world advances with no canvas, DOM, or style.
  * Run: npm run smoke
  */
+import { grainOf, same } from "../src/audio/kernel/index.ts";
+import { airBed, rustlePcm } from "../src/audio/meadow.ts";
 import {
   DAY_SECONDS,
   createWorld,
@@ -17,7 +19,7 @@ import {
 } from "../src/sim/index.ts";
 
 const STEP = 1 / 60;
-const EMPTY = { steerX: 0, steerY: 0 };
+const EMPTY = {};
 
 const world = createWorld(800, 600, 42);
 
@@ -267,6 +269,20 @@ const extentTrip = deserialize(serialize(createWorld(960, 600, 2)));
 if (extentTrip.width !== 960 || extentTrip.height !== 600) {
   console.error("sim-smoke FAIL: world extent lost on deserialize");
   process.exit(1);
+}
+
+{
+  const a = airBed(7);
+  const b = airBed(7);
+  if (!same(a, b) || a.length < 1000) {
+    console.error("sim-smoke FAIL: air bed should be deterministic and non-empty");
+    process.exit(1);
+  }
+  const g = grainOf(7, 12, 3, "rustle");
+  if (!same(rustlePcm(g), rustlePcm(g))) {
+    console.error("sim-smoke FAIL: rustle pcm should match for the same grain");
+    process.exit(1);
+  }
 }
 
 console.log(

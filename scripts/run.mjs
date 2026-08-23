@@ -1,27 +1,28 @@
 /**
- * One button: start the meadow, open a chromeless window, leave nothing behind.
- * Single process — Vite runs in here, so there is nothing to spawn or reap.
- *
- * Browser-host launch layer — disposable. If the host stops being a browser,
- * delete this, scripts/lifeline.mjs, and .vscode/launch.json.
+ * Start Vite, then open EmerisShell or the IDE Simple Browser.
  */
 import { execSync, spawn } from "node:child_process";
-import { existsSync } from "node:fs";
 import { createConnection } from "node:net";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { openShell } from "./shell.mjs";
 
 const PORT = 5173;
 const URL = `http://127.0.0.1:${PORT}/`;
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const quiet = process.env.MEADOW_NO_OPEN === "1";
+const forceExternal = process.env.MEADOW_OPEN_EXTERNAL === "1";
 
-const BROWSERS = [
-  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-  "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-];
+function wantShell() {
+  if (quiet) return false;
+  if (forceExternal) return true;
+  return !(
+    process.env.VSCODE_PID ||
+    process.env.TERM_PROGRAM === "vscode" ||
+    process.env.CURSOR_TRACE_ID ||
+    process.env.CURSOR_AGENT
+  );
+}
 
 function reachable(timeoutMs = 120) {
   return new Promise((resolve) => {
@@ -50,21 +51,13 @@ async function ours() {
   }
 }
 
-/** Chromeless app window: feels like an app, and closing it ends the session. */
 function openWindow() {
-  if (quiet) return;
-  const browser = BROWSERS.find((p) => existsSync(p));
-  const child = browser
-    ? spawn(browser, [`--app=${URL}`, "--window-size=1280,800"], {
-        detached: true,
-        stdio: "ignore",
-      })
-    : spawn("cmd", ["/c", "start", "", URL], {
-        detached: true,
-        stdio: "ignore",
-        windowsHide: true,
-      });
-  child.unref();
+  if (!wantShell()) return;
+  openShell({
+    url: URL,
+    title: "Emeris",
+    profile: "meadow",
+  });
 }
 
 /** Only used when something foreign squats the port — never on the fast path. */
@@ -95,7 +88,6 @@ if ((await reachable()) && (await ours())) {
 }
 
 async function serve() {
-  // Imported here so the warm path never pays Vite's module load.
   const { createServer } = await import("vite");
   const server = await createServer({ root });
   await server.listen();
@@ -112,4 +104,8 @@ try {
 
 openWindow();
 server.printUrls();
-console.log(`\nclose the window to shut everything down.`);
+if (wantShell()) {
+  console.log(`\nclose the app window to shut everything down.`);
+} else {
+  console.log(`\nIDE mode — stop the debug session to shut down.`);
+}

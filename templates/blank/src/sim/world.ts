@@ -11,15 +11,11 @@ export const WORLD_WIDTH = 960;
 export const WORLD_HEIGHT = 600;
 
 /**
- * Intent is a boundary for deferred agency: tests and a future player/agent
- * submit it; only `step` applies it. The human host currently submits empty intent.
+ * Intent is one boundary crossing into the world — host or test, through `step`.
+ * Its shape is yours to define when this world asks for influence; until then
+ * nothing crosses.
  */
-export type Intent = {
-  steerX: number;
-  steerY: number;
-  cycleControl?: boolean;
-  claimControl?: number;
-};
+export type Intent = Record<string, never>;
 
 /**
  * Identity-specific plain data on an entity.
@@ -60,11 +56,6 @@ export type World = {
   time: number;
   entities: Entity[];
   nextId: number;
-  /** Observer camera focus (creature id) — not player control. */
-  focusId: number;
-  /** Last intent axes applied by step — serializable for snapshot/replay. */
-  steerX: number;
-  steerY: number;
 };
 
 /** Remove an entity by id. Returns true if something was removed. */
@@ -96,9 +87,6 @@ export function createWorld(
     time: 0,
     entities: [],
     nextId: 1,
-    focusId: 0,
-    steerX: 0,
-    steerY: 0,
   };
 
   for (let i = 0; i < 5; i++) {
@@ -112,10 +100,8 @@ export function createWorld(
     });
   }
 
-  const focusId = world.nextId++;
-  world.focusId = focusId;
   world.entities.push({
-    id: focusId,
+    id: world.nextId++,
     identity: "creature",
     x: width * 0.45,
     y: height * 0.5,

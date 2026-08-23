@@ -1,3 +1,4 @@
+import { Audio } from "./audio";
 import { draw } from "./draw";
 import {
   createWorld,
@@ -19,8 +20,9 @@ const ctx: CanvasRenderingContext2D = context;
 const hint = document.querySelector<HTMLParagraphElement>("#hint");
 
 const STEP = 1 / 60;
-/** Host submits empty intent — player agency deferred. */
-const EMPTY_INTENT: Intent = { steerX: 0, steerY: 0 };
+/** The meadow asks nothing of its observer — the crossing stays empty. */
+const EMPTY_INTENT: Intent = {};
+const audio = new Audio();
 
 let activeStyles = styles;
 let styleIndex = 0;
@@ -54,21 +56,18 @@ function resizeCanvas(): void {
 function newWorld(seed: number): void {
   world = createWorld(viewW, viewH, seed);
   accumulator = 0;
+  audio.reset();
   updateHint();
 }
 
 resizeCanvas();
-if (world.width !== viewW || world.height !== viewH) {
-  newWorld(seedCounter);
-}
 
-window.addEventListener("resize", () => {
-  resizeCanvas();
-  newWorld(world.seed);
-});
+// The world outlives the window. Resizing only re-fits the observer.
+window.addEventListener("resize", resizeCanvas);
 updateHint();
 
 window.addEventListener("keydown", (e) => {
+  audio.unlock();
   if (e.code === "Space") {
     e.preventDefault();
     styleIndex = (styleIndex + 1) % activeStyles.length;
@@ -82,6 +81,7 @@ window.addEventListener("keydown", (e) => {
     if (!snapshot) return;
     world = deserialize(snapshot);
     accumulator = 0;
+    audio.reset();
     updateHint();
   } else if (e.code === "KeyN") {
     e.preventDefault();
@@ -103,8 +103,14 @@ function frame(now: number): void {
   }
 
   draw(ctx, world, activeStyle(), { width: viewW, height: viewH });
+  audio.hear(world, activeStyle(), frameDt);
   requestAnimationFrame(frame);
 }
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) audio.suspend();
+  else audio.resume();
+});
 
 requestAnimationFrame(frame);
 

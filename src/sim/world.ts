@@ -11,21 +11,12 @@ export const MEADOW_WIDTH = 960;
 export const MEADOW_HEIGHT = 600;
 
 /**
- * Intent is a boundary for deferred agency: tests and a future player/agent
- * submit it; only `step` applies it. The human host currently submits empty intent.
+ * Intent is one boundary crossing into the world — host or test, through `step`.
+ * Its shape is world-defined, not a universal input schema. The meadow asks
+ * nothing of its observer, so meadow Intent carries nothing.
  * Not a core vocabulary peer.
  */
-export type Intent = {
-  steerX: number;
-  steerY: number;
-  /** Cycle camera focus to the next creature (future / scripted). */
-  cycleControl?: boolean;
-  /**
-   * Claim a specific creature by entity id as focus (second command source).
-   * Applied before steer axes; ignored if missing or not a living creature.
-   */
-  claimControl?: number;
-};
+export type Intent = Record<string, never>;
 
 /**
  * Identity-specific plain data on an entity.
@@ -77,11 +68,6 @@ export type World = {
   time: number;
   entities: Entity[];
   nextId: number;
-  /** Observer camera focus (creature id) — not player control. */
-  focusId: number;
-  /** Last intent axes applied by step — serializable for snapshot/replay. */
-  steerX: number;
-  steerY: number;
 };
 
 /** Remove an entity by id. Returns true if something was removed. */
@@ -113,9 +99,6 @@ export function createWorld(
     time: 0,
     entities: [],
     nextId: 1,
-    focusId: 0,
-    steerX: 0,
-    steerY: 0,
   };
 
   world.entities.push({
@@ -167,10 +150,8 @@ export function createWorld(
     });
   }
 
-  const focusId = world.nextId++;
-  world.focusId = focusId;
   world.entities.push({
-    id: focusId,
+    id: world.nextId++,
     identity: "creature",
     x: width * 0.4,
     y: height * 0.55,

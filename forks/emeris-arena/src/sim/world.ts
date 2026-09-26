@@ -9,6 +9,19 @@ export { random } from "./rng";
 export const ARENA_COLS = 24;
 export const ARENA_ROWS = 18;
 
+/** Seconds before wave 1 arrives. */
+export const FIRST_WAVE_DELAY = 1.5;
+
+/** Spawn points around the edges of the default map, as flat x, y pairs. */
+const SPAWNS = [
+  1.5, 16.5,
+  22.5, 16.5,
+  22.5, 1.5,
+  10.5, 1.5,
+  11.5, 16.5,
+  1.5, 10.5,
+];
+
 /**
  * Intent is a boundary for agency: host and tests submit it; only `step` applies it.
  * Not a core vocabulary peer.
@@ -41,6 +54,28 @@ export type EntityLocal = {
   cooldown?: number;
   /** Hits scored (player) — optional chrome. */
   score?: number;
+  /** Hit points. 0 means dead. */
+  health?: number;
+  /** Seconds left on the hurt flash. */
+  hurt?: number;
+  /** Seconds left on the player's hit marker. */
+  hitMark?: number;
+  /** Seconds until this stalker can hit again. */
+  attack?: number;
+  /** Seconds a fire request stays queued. */
+  fireBuffer?: number;
+  /** Level spawn points as flat x, y pairs. */
+  spawns?: number[];
+  /** Current wave number (wave entity). 0 before the first wave. */
+  wave?: number;
+  /** Drones still to spawn this wave. */
+  pending?: number;
+  /** Stalkers still to spawn this wave. */
+  pendingStalkers?: number;
+  /** Seconds until the next spawn. */
+  spawnTimer?: number;
+  /** Seconds left before the next wave starts. */
+  breather?: number;
 };
 
 export type Entity = {
@@ -203,6 +238,23 @@ export function createWorld(
       cols,
       rows,
       cells: buildCells(cols, rows),
+      spawns: [...SPAWNS],
+    },
+  });
+
+  world.entities.push({
+    id: world.nextId++,
+    identity: "wave",
+    x: 0,
+    y: 0,
+    facing: 0,
+    speed: 0,
+    local: {
+      wave: 0,
+      pending: 0,
+      pendingStalkers: 0,
+      spawnTimer: 0,
+      breather: FIRST_WAVE_DELAY,
     },
   });
 
@@ -215,42 +267,8 @@ export function createWorld(
     y: 2.5,
     facing: 0,
     speed: 3.8,
-    local: { cooldown: 0, score: 0 },
+    local: { cooldown: 0, score: 0, health: 5, hurt: 0, hitMark: 0, fireBuffer: 0 },
   });
-
-  const drones: [number, number][] = [
-    [9.5, 5.5],
-    [14.5, 7.5],
-    [4.5, 11.5],
-  ];
-  for (const [x, y] of drones) {
-    world.entities.push({
-      id: world.nextId++,
-      identity: "drone",
-      x,
-      y,
-      facing: 0,
-      speed: 1.15,
-      local: { age: 0 },
-    });
-  }
-
-  const stalkers: [number, number][] = [
-    [20.5, 5.5],
-    [10.5, 15.5],
-    [18.5, 15.5],
-  ];
-  for (const [x, y] of stalkers) {
-    world.entities.push({
-      id: world.nextId++,
-      identity: "stalker",
-      x,
-      y,
-      facing: Math.PI,
-      speed: 1.55,
-      local: { age: 0 },
-    });
-  }
 
   return world;
 }

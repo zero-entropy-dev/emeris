@@ -1,8 +1,8 @@
 # Emeris Arena
 
-Simplest playable FPS (raycaster) that still honors Emeris world-first law.
+A small, fast first-person shooter (raycaster) built on Emeris world-first law. Survive growing waves of drones and stalkers; each run ends when your health does. Direction: [`ROADMAP.md`](ROADMAP.md).
 
-**Not** a product shooter — pressure-tests Intent and Style as first-person observation. The meadow in the parent tree stays primary.
+The meadow in the parent tree stays the primary world.
 
 ## Run
 
@@ -12,15 +12,18 @@ npm install
 npm run dev
 ```
 
-[http://127.0.0.1:5174/](http://127.0.0.1:5174/) · **Run and Debug → Run arena**
+**Run and Debug → Run arena** opens the game in its own Emeris window (the shared native shell) with the arena icon. Closing the window stops the dev server. Without the shell built, it falls back to an Edge app window. Browser: [http://127.0.0.1:5174/](http://127.0.0.1:5174/)
 
-Headless: `npm run smoke`
+Headless: `npm run smoke` · step cost: `npm run bench` · regenerate icon: `npm run icon`
 
 | Input | Action |
 |-------|--------|
 | WASD | Move |
 | Mouse | Look (click canvas to lock) |
 | Click | Fire |
+| Enter | Restart the same seed |
 | Space | Cycle style |
 | P / R | Snapshot / restore |
 | N | New seed |
+| F2 | Screenshot (PNG download + clipboard) |
+| F3 | Frame meter |

@@ -7,13 +7,13 @@ const AIR_SECONDS = 2.4;
 
 export function airBed(worldSeed: number): Sample {
   const g = grainOf(worldSeed, 0, 0, "air");
-  const raw = noise(AIR_SECONDS, g.seed, true, 0.22);
+  const raw = noise(AIR_SECONDS, g.seed, "brown", 0.22);
   return gain(raw, 1);
 }
 
 export function rustlePcm(grain: Grain): Sample {
   const dur = 0.16 * jitter(grain.seed, 1, 0.12);
-  const hiss = noise(dur, grain.seed, false, 0.14 * grain.intensity);
+  const hiss = noise(dur, grain.seed, "white", 0.14 * grain.intensity);
   const tick = osc("triangle", 420 * jitter(grain.seed, 2, 0.08), dur, 0.05 * grain.intensity, 0.004);
   return mix([hiss, tick]);
 }

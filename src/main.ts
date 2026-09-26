@@ -1,5 +1,6 @@
 import { Audio } from "./audio";
 import { draw } from "./draw";
+import { createFpsMeter, paintFps, sampleFps, toggleFps } from "./fps";
 import {
   createWorld,
   deserialize,
@@ -87,10 +88,14 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
     seedCounter += 1;
     newWorld(seedCounter);
+  } else if (e.code === "F3") {
+    e.preventDefault();
+    toggleFps(fps);
   }
 });
 
 let last = performance.now();
+const fps = createFpsMeter();
 
 function frame(now: number): void {
   const frameDt = Math.min(0.05, (now - last) / 1000);
@@ -104,6 +109,8 @@ function frame(now: number): void {
 
   draw(ctx, world, activeStyle(), { width: viewW, height: viewH });
   audio.hear(world, activeStyle(), frameDt);
+  sampleFps(fps, now);
+  paintFps(ctx, fps, viewW);
   requestAnimationFrame(frame);
 }
 

@@ -96,6 +96,8 @@ internal static class Program
     {
         private readonly WebView2 _web = new() { Dock = DockStyle.Fill };
         private readonly ShellOptions _opts;
+        private readonly HostSampler _hostSampler = new();
+        private System.Windows.Forms.Timer? _hostPerf;
 
         internal ShellForm(ShellOptions opts)
         {
@@ -117,6 +119,7 @@ internal static class Program
 
             Controls.Add(_web);
             Shown += OnShownAsync;
+            FormClosed += OnFormClosed;
             KeyPreview = true;
             KeyDown += OnKeyDown;
         }
@@ -141,6 +144,7 @@ internal static class Program
                 core.Settings.AreDefaultContextMenusEnabled = false;
                 core.Settings.IsStatusBarEnabled = false;
                 core.Settings.IsZoomControlEnabled = false;
+                core.Settings.IsWebMessageEnabled = true;
 
                 core.NavigationStarting += (_, ev) =>
                 {
@@ -148,6 +152,10 @@ internal static class Program
                     {
                         ev.Cancel = true;
                     }
+                };
+                core.NavigationCompleted += (_, ev) =>
+                {
+                    if (ev.IsSuccess) ArmHostPerf(core);
                 };
 
                 await WaitForServerAsync(_opts.Url);
@@ -186,6 +194,48 @@ internal static class Program
                 await Task.Delay(150);
             }
             throw new TimeoutException($"Dev server did not respond at {url}");
+        }
+
+        private void ArmHostPerf(CoreWebView2 core)
+        {
+            _hostPerf ??= new System.Windows.Forms.Timer { Interval = 250 };
+            _hostPerf.Tick -= OnHostPerfTick;
+            _hostPerf.Tick += OnHostPerfTick;
+            _hostPerf.Tag = core;
+            _hostPerf.Start();
+        }
+
+        private void OnHostPerfTick(object? sender, EventArgs e)
+        {
+            if (_hostPerf?.Tag is not CoreWebView2 core) return;
+            try
+            {
+                var browser = 0;
+                try
+                {
+                    browser = unchecked((int)core.BrowserProcessId);
+                }
+                catch
+                {
+                    /* core tearing down */
+                }
+                var json = _hostSampler.Tick(Environment.ProcessId, browser);
+                if (json is null) return;
+                core.PostWebMessageAsJson(json);
+            }
+            catch
+            {
+                /* page not ready / core gone */
+            }
+        }
+
+        private void OnFormClosed(object? sender, FormClosedEventArgs e)
+        {
+            if (_hostPerf is null) return;
+            _hostPerf.Stop();
+            _hostPerf.Tick -= OnHostPerfTick;
+            _hostPerf.Dispose();
+            _hostPerf = null;
         }
 
         private void OnKeyDown(object? sender, KeyEventArgs e)

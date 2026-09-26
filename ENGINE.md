@@ -21,7 +21,7 @@ Emeris is a small deterministic engine for simulation-first games. TypeScript, b
 - Marks / `frame` may read the world; never mutate it or draw from world RNG.
 - `src/sim/` must not import canvas, DOM, or platform APIs.
 - World extent is fixed at creation. The observer fits itself to the world — resizing a window never rebuilds it.
-- Host/tests change the world only through `step` / `createWorld` / `deserialize`.
+- Host/tests change the world only through `step` / `createWorld` / `deserialize`, plus `loadWorld` for worlds that keep saves.
 
 ## Locked laws (short)
 
@@ -29,8 +29,8 @@ Emeris is a small deterministic engine for simulation-first games. TypeScript, b
 2. **Appearance is one idea; style is data.** Marks never mutate the world or use world RNG. Audio is the same idea: a PCM kernel plus a host that plays buffers. Recipes stay world-authored, like Marks. Lighting is Style data (fill, fog, optional key) — not a sixth name.
 3. **No scene graph or asset pipeline in the first core.** Identities + style + immediate draw.
 4. **Determinism.** World RNG in world state; fixed timestep. Same seed + same intents → same ticks.
-5. **Serializability is a live canary.** Plain JSON.
-6. **Identity is described data.** Behaviours hang off the registry, not switches in `step`.
+5. **Serializability is a live canary.** Plain JSON. `deserialize` restores a snapshot exactly. Saves from older builds go through a separate `loadWorld` that migrates them.
+6. **Identity is described data.** Behaviours hang off the registry, not switches in `step`. A rule for the whole world lives on one holder entity with its own identity (the meadow's `day`), not as a pass inside `step`.
 7. **Grow from demand.** No ECS, editors, networking, or 3D “for completeness.”
 8. **World/host boundary.** Viewport and camera are observer-only — never in World.
 
@@ -50,12 +50,14 @@ Three layers — see [`HOST.md`](HOST.md):
 |------|------|
 | `shell/` | Native WebView2 shell (`EmerisShell.exe`) — shared with sibling products |
 | `src/sim/` | Sovereign world (path name ≠ vocabulary) |
+| `src/sim/spine.ts` | World helpers shared by every Emeris world — rng, add/remove entity, `localOf`, serialize |
 | `src/style.ts` | Style (`frame` + Marks + lighting recipe) — observer |
 | `src/light.ts` | `LightingRecipe` — fill / fog / optional key |
 | `src/draw.ts` | Immediate render — observer |
-| `src/audio/` | PCM kernel + host; world-authored recipes |
+| `src/audio/` | PCM kernel + host; world-authored recipes. The kernel (`src/audio/kernel/`) is shared with sibling games |
+| `src/fps.ts` | Host frame meter — **F3**; adds shell CPU / RAM inside EmerisShell. Never World |
 | `src/main.ts` | Host: canvas, clock, Intent, draw, hear, HMR |
-| `scripts/` | Launch + lifeline + smoke |
+| `scripts/` | Launch (`dev.mjs` `runDev`, `shell.mjs`, `lifeline.mjs` — shared with sibling games) + smoke |
 
 ## Run
 
@@ -71,6 +73,7 @@ Headless canary: `npm run smoke`.
 | **Space** | Cycle style |
 | **P** / **R** | Snapshot / restore |
 | **N** | New seed |
+| **F3** | Frame counter (host only) |
 
 Edit `src/style.ts` while running — HMR reinterprets; world state stays.
 

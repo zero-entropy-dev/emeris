@@ -2,6 +2,13 @@
 
 import type { Identity } from "./identity";
 import { random } from "./rng";
+import {
+  addEntity,
+  deserialize as spineDeserialize,
+  localOf,
+  removeEntity,
+  serialize as spineSerialize,
+} from "./spine";
 
 export type { Identity };
 export { random };
@@ -51,11 +58,7 @@ export type Entity = {
   local?: EntityLocal;
 };
 
-/** Ensure `e.local` exists for writers in behave(). */
-export function localOf(e: Entity): EntityLocal {
-  if (!e.local) e.local = {};
-  return e.local;
-}
+export { addEntity, localOf, removeEntity };
 
 export type World = {
   seed: number;
@@ -69,21 +72,6 @@ export type World = {
   entities: Entity[];
   nextId: number;
 };
-
-/** Remove an entity by id. Returns true if something was removed. */
-export function removeEntity(world: World, id: number): boolean {
-  const i = world.entities.findIndex((e) => e.id === id);
-  if (i < 0) return false;
-  world.entities.splice(i, 1);
-  return true;
-}
-
-/** Assign nextId and push — sibling of removeEntity. */
-export function addEntity(world: World, draft: Omit<Entity, "id">): Entity {
-  const e: Entity = { ...draft, id: world.nextId++ };
-  world.entities.push(e);
-  return e;
-}
 
 export function createWorld(
   width = MEADOW_WIDTH,
@@ -180,9 +168,9 @@ export function createWorld(
 }
 
 export function serialize(world: World): string {
-  return JSON.stringify(world);
+  return spineSerialize(world);
 }
 
 export function deserialize(text: string): World {
-  return JSON.parse(text) as World;
+  return spineDeserialize<World>(text);
 }

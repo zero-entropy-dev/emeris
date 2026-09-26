@@ -3,9 +3,8 @@
  * watches it: the page pings while open and beacons on unload, so closing the
  * window shuts Vite down and frees the port.
  *
- * Disposable by design — this file plus scripts/run.mjs and .vscode/launch.json
- * are the entire browser-host launch layer. Delete them if the host changes.
- * Never imported by src/. Never applies to builds.
+ * Shared by the meadow and sibling games (their vite.config imports it by
+ * relative path). Never imported by src/. Never applies to builds.
  */
 import { cwd } from "node:process";
 
@@ -29,7 +28,11 @@ const CLIENT = `(() => {
   addEventListener('pagehide', () => { clearInterval(t); hit('bye'); });
 })();`;
 
-export function lifeline() {
+/**
+ * @param {{ key?: string }} [opts] product key — the id endpoint answers
+ * `{ [key]: true, root }` so `runDev` can tell its own server from a neighbour's.
+ */
+export function lifeline({ key = "meadow" } = {}) {
   /** client id -> last seen epoch ms */
   const clients = new Map();
   const startedAt = Date.now();
@@ -81,7 +84,7 @@ export function lifeline() {
   }
 
   return {
-    name: "meadow-lifeline",
+    name: `${key}-lifeline`,
     apply: "serve",
 
     configureServer(s) {
@@ -92,7 +95,7 @@ export function lifeline() {
 
         if (path === "/id") {
           res.setHeader("content-type", "application/json");
-          res.end(JSON.stringify({ meadow: true, root: cwd() }));
+          res.end(JSON.stringify({ [key]: true, root: cwd() }));
           return;
         }
 

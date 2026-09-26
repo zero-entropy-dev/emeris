@@ -1,14 +1,16 @@
 {
   "name": "emeris-arena",
   "private": true,
-  "version": "0.0.4",
+  "version": "0.2.0",
   "description": "Emeris arena â€” simplest playable FPS (raycaster) on world-first Emeris law.",
   "type": "module",
   "scripts": {
     "dev": "node scripts/run.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "smoke": "tsx scripts/sim-smoke.ts"
+    "smoke": "tsx scripts/sim-smoke.ts",
+    "bench": "tsx scripts/bench.ts",
+    "icon": "node scripts/make-icon.mjs"
   },
   "devDependencies": {
     "tsx": "^4.20.3",

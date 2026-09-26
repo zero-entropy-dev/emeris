@@ -23,6 +23,7 @@
       "noDebug": true,
       "console": "integratedTerminal",
       "env": {
+        "ARENA_OPEN_EXTERNAL": "1",
         "NODE_OPTIONS": null,
         "VSCODE_INSPECTOR_OPTIONS": null
       }
